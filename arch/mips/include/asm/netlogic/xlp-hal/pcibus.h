@@ -103,6 +103,7 @@
 
 #ifdef CONFIG_PCI_MSI
 void xlp_init_node_msi_irqs(int node, int link);
+extern struct msi_chip xlp_chip;
 #else
 static inline void xlp_init_node_msi_irqs(int node, int link) {}
 #endif
