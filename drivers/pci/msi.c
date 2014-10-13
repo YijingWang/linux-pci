@@ -32,12 +32,10 @@ int pci_msi_ignore_mask;
 
 int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
 {
-	struct msi_chip *chip = dev->bus->msi;
+	struct msi_chip *chip;
 	int err;
 
-	if (!chip)
-		chip = pci_msi_chip(dev->bus);
-
+	chip = pci_msi_chip(dev->bus);
 	if (!chip || !chip->setup_irq)
 		return -EINVAL;
 
@@ -51,10 +49,7 @@ int __weak arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
 void __weak arch_teardown_msi_irq(unsigned int irq)
 {
 	struct msi_desc *entry = irq_get_msi_desc(irq);
-	struct msi_chip *chip = entry->dev->bus->msi;
-
-	if (!chip)
-		chip = pci_msi_chip(entry->dev->bus);
+	struct msi_chip *chip = pci_msi_chip(entry->dev->bus);
 
 	if (!chip || !chip->teardown_irq)
 		return;
