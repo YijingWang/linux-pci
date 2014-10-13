@@ -508,6 +508,7 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 
 	sd = &info->sd;
 	sd->domain = domain;
+	sd->msi_chip = x86_msi_chip;
 	sd->node = node;
 	sd->companion = device;
 
