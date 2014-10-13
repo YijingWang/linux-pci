@@ -149,6 +149,8 @@ static struct resource nlm_pci_io_resource = {
 	.flags		= IORESOURCE_IO,
 };
 
+static struct msi_chip xlr_msi_chip;
+
 struct pci_controller nlm_pci_controller = {
 	.index		= 0,
 	.pci_ops	= &nlm_pci_ops,
@@ -156,6 +158,9 @@ struct pci_controller nlm_pci_controller = {
 	.mem_offset	= 0x00000000UL,
 	.io_resource	= &nlm_pci_io_resource,
 	.io_offset	= 0x00000000UL,
+#ifdef CONFIG_PCI_MSI
+	.msi_chip = &xlr_msi_chip,
+#endif
 };
 
 /*
@@ -214,11 +219,13 @@ static int get_irq_vector(const struct pci_dev *dev)
 }
 
 #ifdef CONFIG_PCI_MSI
-void arch_teardown_msi_irq(unsigned int irq)
+static void xlr_teardown_msi_irq(struct msi_chip *chip, 
+		unsigned int irq)
 {
 }
 
-int arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
+static int xlr_setup_msi_irq(struct msi_chip *chip, 
+		struct pci_dev *dev, struct msi_desc *desc)
 {
 	struct msi_msg msg;
 	struct pci_dev *lnk;
@@ -263,6 +270,12 @@ int arch_setup_msi_irq(struct pci_dev *dev, struct msi_desc *desc)
 	write_msi_msg(irq, &msg);
 	return 0;
 }
+
+static struct msi_chip xlr_msi_chip = {
+	.setup_irq = xlr_setup_msi_irq,
+	.teardown_irq = xlr_teardown_msi_irq,
+};
+
 #endif
 
 /* Extra ACK needed for XLR on chip PCI controller */
