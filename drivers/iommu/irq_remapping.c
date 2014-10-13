@@ -92,7 +92,7 @@ error:
 
 	/*
 	 * Restore altered MSI descriptor fields and prevent just destroyed
-	 * IRQs from tearing down again in default_teardown_msi_irqs()
+	 * IRQs from tearing down again in teardown_msi_irqs()
 	 */
 	msidesc->irq = 0;
 	msidesc->nvec_used = 0;
