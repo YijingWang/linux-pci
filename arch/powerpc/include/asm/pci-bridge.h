@@ -32,6 +32,10 @@ struct pci_controller {
 	int self_busno;
 	struct resource busn;
 
+#ifdef CONFIG_PCI_MSI
+	struct msi_chip *msi_chip;
+#endif
+
 	void __iomem *io_base_virt;
 #ifdef CONFIG_PPC64
 	void *io_base_alloc;
@@ -93,6 +97,17 @@ struct pci_controller {
 
 	void *private_data;
 };
+
+#ifdef CONFIG_PCI_MSI
+extern struct msi_chip ppc_msi_chip;
+
+static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
+{
+	struct pci_controller *hose = bus->sysdata;
+
+	return hose->msi_chip;
+}
+#endif
 
 /* These are used for config access before all the PCI probing
    has been done. */
