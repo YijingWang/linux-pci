@@ -43,6 +43,9 @@ struct pci_controller {
 
 	int iommu;
 
+#ifdef CONFIG_PCI_MSI
+	struct msi_chip *msi_chip;
+#endif
 	/* Optional access methods for reading/writing the bus number
 	   of the PCI controller */
 	int (*get_busno)(void);
@@ -53,6 +56,17 @@ struct pci_controller {
  * Used by boards to register their PCI busses before the actual scanning.
  */
 extern void register_pci_controller(struct pci_controller *hose);
+
+#ifdef CONFIG_PCI_MSI
+
+static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
+{
+	struct pci_controller *control = (struct pci_controller *)bus->sysdata;
+
+	return control->msi_chip;
+}
+
+#endif
 
 /*
  * board supplied pci irq fixup routine
