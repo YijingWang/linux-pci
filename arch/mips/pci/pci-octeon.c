@@ -356,6 +356,9 @@ static struct pci_controller octeon_pci_controller = {
 	.io_resource = &octeon_pci_io_resource,
 	.io_offset = 0,
 	.io_map_base = OCTEON_PCI_IOSPACE_BASE,
+#ifdef CONFIG_PCI_MSI
+	.msi_chip = &octeon_msi_chip,
+#endif
 };
 
 

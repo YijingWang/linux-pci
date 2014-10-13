@@ -66,4 +66,8 @@ enum octeon_dma_bar_type {
  */
 extern enum octeon_dma_bar_type octeon_dma_bar_type;
 
+#ifdef CONFIG_PCI_MSI
+extern struct msi_chip octeon_msi_chip;
+#endif
+
 #endif
