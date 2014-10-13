@@ -3200,7 +3200,8 @@ int setup_msi_irq(struct pci_dev *dev, struct msi_desc *msidesc,
 	return 0;
 }
 
-int native_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
+static int native_setup_msi_irqs(struct msi_chip *chip, 
+		struct pci_dev *dev, int nvec, int type)
 {
 	struct msi_desc *msidesc;
 	unsigned int irq;
@@ -3227,26 +3228,14 @@ int native_setup_msi_irqs(struct pci_dev *dev, int nvec, int type)
 	return 0;
 }
 
-static int __native_setup_msi_irqs(struct msi_chip *chip, 
-		struct pci_dev *dev, int nvec, int type)
-{
-	return native_setup_msi_irqs(dev, nvec, type);
-}
-
-void native_teardown_msi_irq(unsigned int irq)
+void native_teardown_msi_irq(struct msi_chip *chip, unsigned int irq)
 {
 	irq_free_hwirq(irq);
 }
 
-static void __native_teardown_msi_irq(struct msi_chip *chip, 
-		unsigned int irq)
-{
-	native_teardown_msi_irq(irq);
-}
-
 static struct msi_chip native_msi_chip = {
-	.setup_irqs = __native_setup_msi_irqs,
-	.teardown_irq = __native_teardown_msi_irq,
+	.setup_irqs = native_setup_msi_irqs,
+	.teardown_irq = native_teardown_msi_irq,
 };
 
 struct msi_chip *x86_msi_chip = &native_msi_chip;
