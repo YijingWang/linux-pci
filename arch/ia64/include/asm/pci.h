@@ -94,12 +94,22 @@ struct pci_controller {
 	int segment;
 	int node;		/* nearest node with memory or NUMA_NO_NODE for global allocation */
 
+	struct msi_chip *msi_chip;
 	void *platform_data;
 };
 
 
 #define PCI_CONTROLLER(busdev) ((struct pci_controller *) busdev->sysdata)
 #define pci_domain_nr(busdev)    (PCI_CONTROLLER(busdev)->segment)
+
+extern struct msi_chip chip;
+
+static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
+{
+	struct pci_controller *ctrl = bus->sysdata;
+
+	return ctrl->msi_chip;
+}
 
 extern struct pci_ops pci_root_ops;
 

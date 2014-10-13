@@ -437,6 +437,7 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 
 	controller->companion = device;
 	controller->node = acpi_get_node(device->handle);
+	controller->msi_chip = &chip;
 
 	info = kzalloc(sizeof(*info), GFP_KERNEL);
 	if (!info) {
