@@ -139,14 +139,19 @@ error:
 	return ret;
 }
 
-static int irq_remapping_setup_msi_irqs(struct pci_dev *dev,
-					int nvec, int type)
+static int irq_remapping_setup_msi_irqs(struct msi_chip *chip, 
+		struct pci_dev *dev, int nvec, int type)
 {
 	if (type == PCI_CAP_ID_MSI)
 		return do_setup_msi_irqs(dev, nvec);
 	else
 		return do_setup_msix_irqs(dev, nvec);
 }
+
+static struct msi_chip remap_msi_chip = {
+	.setup_irqs = irq_remapping_setup_msi_irqs,
+	.teardown_irq = native_teardown_msi_irq,
+};
 
 static void eoi_ioapic_pin_remapped(int apic, int pin, int vector)
 {
@@ -165,9 +170,9 @@ static void __init irq_remapping_modify_x86_ops(void)
 	x86_io_apic_ops.set_affinity	= set_remapped_irq_affinity;
 	x86_io_apic_ops.setup_entry	= setup_ioapic_remapped_entry;
 	x86_io_apic_ops.eoi_ioapic_pin	= eoi_ioapic_pin_remapped;
-	x86_msi.setup_msi_irqs		= irq_remapping_setup_msi_irqs;
 	x86_msi.setup_hpet_msi		= setup_hpet_msi_remapped;
 	x86_msi.compose_msi_msg		= compose_remapped_msi_msg;
+	x86_msi_chip = &remap_msi_chip;
 }
 
 static __init int setup_nointremap(char *str)
