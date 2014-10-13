@@ -60,7 +60,10 @@ static struct hw_pci iq81340sc_pci __initdata = {
 	.setup		= iop13xx_pci_setup,
 	.scan		= iop13xx_scan_bus,
 	.map_irq	= iq81340sc_atux_map_irq,
-	.preinit	= iop13xx_pci_init
+	.preinit	= iop13xx_pci_init,
+#ifdef CONFIG_PCI_MSI
+	.msi_chip	= &iop13xx_msi_chip,
+#endif
 };
 
 static int __init iq81340sc_pci_init(void)

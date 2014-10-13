@@ -11,6 +11,10 @@ void iop13xx_atu_select(struct hw_pci *plat_pci);
 void iop13xx_pci_init(void);
 void iop13xx_map_pci_memory(void);
 
+#ifdef CONFIG_PCI_MSI
+extern struct msi_chip iop13xx_msi_chip;
+#endif
+
 #define IOP_PCI_STATUS_ERROR (PCI_STATUS_PARITY |	     \
 			       PCI_STATUS_SIG_TARGET_ABORT | \
 			       PCI_STATUS_REC_TARGET_ABORT | \
