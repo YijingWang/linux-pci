@@ -1433,6 +1433,15 @@ static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
 
 #include <asm/pci.h>
 
+/* Just avoid compile error, will be clean up later */
+#ifdef CONFIG_PCI_MSI
+
+#ifndef pci_msi_chip
+#define pci_msi_chip(bus)	NULL
+#endif
+
+#endif
+
 /* these helpers provide future and backwards compatibility
  * for accessing popular PCI BAR info */
 #define pci_resource_start(dev, bar)	((dev)->resource[(bar)].start)
