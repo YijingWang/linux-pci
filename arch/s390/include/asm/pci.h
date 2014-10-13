@@ -88,6 +88,8 @@ struct zpci_dev {
 	u32 uid;			/* user defined id */
 	u8 util_str[CLP_UTIL_STR_LEN];	/* utility string */
 
+	struct msi_chip *msi_chip;
+	
 	/* IRQ stuff */
 	u64		msi_addr;	/* MSI address */
 	struct airq_iv *aibv;		/* adapter interrupt bit vector */
@@ -120,6 +122,13 @@ struct zpci_dev {
 	struct dentry	*debugfs_dev;
 	struct dentry	*debugfs_perf;
 };
+
+static inline struct msi_chip *pci_msi_chip(struct pci_bus *bus)
+{
+	struct zpci_dev *zpci = bus->sysdata;
+
+	return zpci->msi_chip;
+}
 
 static inline bool zdev_enabled(struct zpci_dev *zdev)
 {
