@@ -2091,7 +2091,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int bus,
 }
 EXPORT_SYMBOL(pci_scan_root_bus);
 
-struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops,
+struct pci_bus *pci_scan_bus_legacy(int bus, struct pci_ops *ops,
 					void *sysdata)
 {
 	LIST_HEAD(resources);
@@ -2108,7 +2108,7 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops,
 	}
 	return b;
 }
-EXPORT_SYMBOL(pci_scan_bus);
+EXPORT_SYMBOL(pci_scan_bus_legacy);
 
 /**
  * pci_rescan_bus_bridge_resize - scan a PCI bus for devices.
