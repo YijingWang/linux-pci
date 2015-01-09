@@ -467,6 +467,18 @@ static void probe_pci_root_info(struct pci_root_info *info,
 				info);
 }
 
+static int pci_host_bridge_prepare(struct pci_host_bridge *bridge)
+{
+	struct pci_sysdata *sd = dev_get_drvdata(&bridge->dev);
+
+	ACPI_COMPANION_SET(&bridge->dev, sd->companion);
+	return 0;
+}
+
+static struct pci_host_bridge_ops phb_ops = {
+	.phb_prepare = pci_host_bridge_prepare,
+};
+
 struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 {
 	struct acpi_device *device = root->device;
@@ -474,7 +486,8 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 	int domain = root->segment;
 	int busnum = root->secondary.start;
 	LIST_HEAD(resources);
-	struct pci_bus *bus = NULL, *child;
+	struct pci_host_bridge *host = NULL;
+	struct pci_bus *child;
 	struct pci_sysdata *sd;
 	int node;
 
@@ -512,7 +525,6 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 	sd->companion = device;
 
 	probe_pci_root_info(info, device, busnum, domain);
-
 	/* insert busn res at first */
 	pci_add_resource(&resources,  &root->secondary);
 	/*
@@ -528,35 +540,26 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 
 	if (!setup_mcfg_map(info, domain, (u8)root->secondary.start,
 				(u8)root->secondary.end, root->mcfg_addr)) 
-		bus = pci_create_root_bus(NULL, PCI_DOMBUS(domain, busnum), 
-				&pci_root_ops, sd, &resources);
+		host = pci_scan_root_bridge(NULL, PCI_DOMBUS(domain, busnum), 
+				&pci_root_ops, sd, &resources, &phb_ops);
 
-	if (!bus) {
+	if (!host) {
 		pci_free_resource_list(&resources);
 		__release_pci_root_info(info);
-	} else {
-		pci_scan_child_bus(bus);
-		pci_set_host_bridge_release(to_pci_host_bridge(bus->bridge), 
-				release_pci_root_info, info);
-		/* After the PCI-E bus has been walked and all devices discovered,
-		 * configure any settings of the fabric that might be necessary.
-		 */
-		list_for_each_entry(child, &bus->children, node)
-			pcie_bus_configure_settings(child);
+		return NULL;
+	} 
 
-		if (node != NUMA_NO_NODE)
-			dev_printk(KERN_DEBUG, &bus->dev, "on NUMA node %d\n", node);
-	}
+	pci_set_host_bridge_release(host, release_pci_root_info, info);
+	/* After the PCI-E bus has been walked and all devices discovered,
+	 * configure any settings of the fabric that might be necessary.
+	 */
+	list_for_each_entry(child, &bus->children, node)
+		pcie_bus_configure_settings(child);
 
-	return bus;
-}
+	if (node != NUMA_NO_NODE)
+		dev_printk(KERN_DEBUG, &bus->dev, "on NUMA node %d\n", node);
 
-int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
-{
-	struct pci_sysdata *sd = bridge->bus->sysdata;
-
-	ACPI_COMPANION_SET(&bridge->dev, sd->companion);
-	return 0;
+	return host->bus;
 }
 
 int __init pci_acpi_init(void)
