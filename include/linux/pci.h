@@ -418,7 +418,8 @@ void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
 
 int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge);
 struct pci_host_bridge *pci_create_host_bridge(
-		struct device *parent, u32 dombus, struct list_head *resources);
+		struct device *parent, u32 dombus, 
+		struct list_head *resources, void *sysdata);
 /*
  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
