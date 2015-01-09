@@ -30,6 +30,9 @@
 #define PCI_DEVFN(slot, func)	((((slot) & 0x1f) << 3) | ((func) & 0x07))
 #define PCI_SLOT(devfn)		(((devfn) >> 3) & 0x1f)
 #define PCI_FUNC(devfn)		((devfn) & 0x07)
+#define PCI_DOMAIN(db)		((db) >> 16)
+#define PCI_BUSNUM(db)		((db) & 0xffff)
+#define PCI_DOMBUS(domain, bus)		(((domain) << 16) | (bus))
 
 /* Ioctls for /proc/bus/pci/X/Y nodes. */
 #define PCIIOC_BASE		('P' << 24 | 'C' << 16 | 'I' << 8)
