@@ -474,7 +474,7 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 	int domain = root->segment;
 	int busnum = root->secondary.start;
 	LIST_HEAD(resources);
-	struct pci_bus *bus;
+	struct pci_bus *bus = NULL, *child;
 	struct pci_sysdata *sd;
 	int node;
 
@@ -511,57 +511,42 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 	sd->node = node;
 	sd->companion = device;
 
-	bus = pci_find_bus(domain, busnum);
-	if (bus) {
-		/*
-		 * If the desired bus has been scanned already, replace
-		 * its bus->sysdata.
-		 */
-		memcpy(bus->sysdata, sd, sizeof(*sd));
-		kfree(info);
-	} else {
-		probe_pci_root_info(info, device, busnum, domain);
+	probe_pci_root_info(info, device, busnum, domain);
 
-		/* insert busn res at first */
-		pci_add_resource(&resources,  &root->secondary);
-		/*
-		 * _CRS with no apertures is normal, so only fall back to
-		 * defaults or native bridge info if we're ignoring _CRS.
-		 */
-		if (pci_use_crs)
-			add_resources(info, &resources);
-		else {
-			free_pci_root_info_res(info);
-			x86_pci_root_bus_resources(busnum, &resources);
-		}
-
-		if (!setup_mcfg_map(info, domain, (u8)root->secondary.start,
-				    (u8)root->secondary.end, root->mcfg_addr))
-			bus = pci_create_root_bus(NULL, busnum, &pci_root_ops,
-						  sd, &resources);
-
-		if (bus) {
-			pci_scan_child_bus(bus);
-			pci_set_host_bridge_release(
-				to_pci_host_bridge(bus->bridge),
-				release_pci_root_info, info);
-		} else {
-			pci_free_resource_list(&resources);
-			__release_pci_root_info(info);
-		}
+	/* insert busn res at first */
+	pci_add_resource(&resources,  &root->secondary);
+	/*
+	 * _CRS with no apertures is normal, so only fall back to
+	 * defaults or native bridge info if we're ignoring _CRS.
+	 */
+	if (pci_use_crs)
+		add_resources(info, &resources);
+	else {
+		free_pci_root_info_res(info);
+		x86_pci_root_bus_resources(busnum, &resources);
 	}
 
-	/* After the PCI-E bus has been walked and all devices discovered,
-	 * configure any settings of the fabric that might be necessary.
-	 */
-	if (bus) {
-		struct pci_bus *child;
+	if (!setup_mcfg_map(info, domain, (u8)root->secondary.start,
+				(u8)root->secondary.end, root->mcfg_addr)) 
+		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops,
+					  sd, &resources);
+
+	if (!bus) {
+		pci_free_resource_list(&resources);
+		__release_pci_root_info(info);
+	} else {
+		pci_scan_child_bus(bus);
+		pci_set_host_bridge_release(to_pci_host_bridge(bus->bridge), 
+				release_pci_root_info, info);
+		/* After the PCI-E bus has been walked and all devices discovered,
+		 * configure any settings of the fabric that might be necessary.
+		 */
 		list_for_each_entry(child, &bus->children, node)
 			pcie_bus_configure_settings(child);
-	}
 
-	if (bus && node != NUMA_NO_NODE)
-		dev_printk(KERN_DEBUG, &bus->dev, "on NUMA node %d\n", node);
+		if (node != NUMA_NO_NODE)
+			dev_printk(KERN_DEBUG, &bus->dev, "on NUMA node %d\n", node);
+	}
 
 	return bus;
 }
