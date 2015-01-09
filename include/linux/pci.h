@@ -403,8 +403,10 @@ struct pci_host_bridge_window {
 
 struct pci_host_bridge {
 	u16	domain;
+	u16 busnum;
 	struct device dev;
 	struct pci_bus *bus;		/* root bus */
+	struct list_head list;
 	struct list_head windows;	/* pci_host_bridge_windows */
 	void (*release_fn)(struct pci_host_bridge *);
 	void *release_data;
@@ -416,7 +418,9 @@ void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
 		     void *release_data);
 
 int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge);
-
+struct pci_host_bridge *pci_create_host_bridge(
+		struct device *parent, u16 domain, u8 busnum,
+		struct list_head *resources);
 /*
  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
@@ -774,6 +778,7 @@ struct pci_bus *pci_scan_bus_legacy(u32 dombus, struct pci_ops *ops, void *sysda
 struct pci_bus *pci_create_root_bus(struct device *parent, u32 dombus,
 				    struct pci_ops *ops, void *sysdata,
 				    struct list_head *resources);
+void pci_free_host_bridge(struct pci_host_bridge *host);
 int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
 int pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
 void pci_bus_release_busn_res(struct pci_bus *b);

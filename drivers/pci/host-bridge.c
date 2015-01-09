@@ -8,6 +8,77 @@
 
 #include "pci.h"
 
+static LIST_HEAD(pci_host_bridge_list);
+static DEFINE_MUTEX(phb_mutex);
+
+static void pci_release_host_bridge_dev(struct device *dev)
+{
+	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
+
+	if (bridge->release_fn)
+		bridge->release_fn(bridge);
+
+	pci_free_resource_list(&bridge->windows);
+	kfree(bridge);
+}
+
+struct pci_host_bridge *pci_create_host_bridge(
+		struct device *parent, u16 domain, u8 busnum, 
+		struct list_head *resources)
+{
+	int error;
+	struct pci_host_bridge *host;
+	struct pci_host_bridge_window *window, *n;
+
+	mutex_lock(&phb_mutex);
+	list_for_each_entry(host, &pci_host_bridge_list, list) 
+		if (host->domain == domain 
+				&& host->busnum == busnum) {
+			dev_dbg(&host->dev, "pci host bridge pci%04x:%02x exist\n",
+					domain, busnum);
+			mutex_unlock(&phb_mutex);
+			return NULL;
+		}
+	mutex_unlock(&phb_mutex);
+
+	host = kzalloc(sizeof(*host), GFP_KERNEL);
+	if (!host)
+		return NULL;
+
+	host->busnum = busnum;
+	host->domain = domain;
+	host->dev.parent = parent;
+	INIT_LIST_HEAD(&host->windows);
+	host->dev.release = pci_release_host_bridge_dev;
+
+	dev_set_name(&host->dev, "pci%04x:%02x", host->domain, 
+			host->busnum);
+
+	error = device_register(&host->dev);
+	if (error) {
+		put_device(&host->dev);
+		return NULL;
+	}
+
+	list_for_each_entry_safe(window, n, resources, list)
+		list_move_tail(&window->list, &host->windows);
+
+	mutex_lock(&phb_mutex);
+	list_add_tail(&host->list, &pci_host_bridge_list);
+	mutex_unlock(&phb_mutex);
+	return host;
+}
+EXPORT_SYMBOL(pci_create_host_bridge);
+
+void pci_free_host_bridge(struct pci_host_bridge *host)
+{
+	mutex_lock(&phb_mutex);
+	list_del(&host->list);
+	mutex_unlock(&phb_mutex);
+
+	device_unregister(&host->dev);
+}
+
 static struct pci_bus *find_pci_root_bus(struct pci_bus *bus)
 {
 	while (bus->parent)
