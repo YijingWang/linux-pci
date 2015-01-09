@@ -1888,6 +1888,8 @@ static struct pci_bus *__pci_create_root_bus(
 
 	bridge->bus = b;
 	b->bridge = get_device(&bridge->dev);
+	if (bridge->ops && bridge->ops->phb_set_root_bus_speed)
+		bridge->ops->phb_set_root_bus_speed(bridge);
 	error = pcibios_root_bridge_prepare(bridge);
 	if (error)
 		goto err_out;
@@ -1954,7 +1956,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
 	struct pci_host_bridge *host;
 
 	host = pci_create_host_bridge(parent, 
-			PCI_DOMAIN(db), PCI_BUSNUM(db), resources, sysdata);
+			PCI_DOMAIN(db), PCI_BUSNUM(db), resources, sysdata, NULL);
 	if (!host)
 		return NULL;
 	
@@ -2052,13 +2054,49 @@ static struct pci_bus *__pci_scan_root_bus(
 		pci_bus_insert_busn_res(b, host->busnum, 255);
 	}
 
-	max = pci_scan_child_bus(b);
+	if (host->ops && host->ops->phb_probe_mode) 
+		host->ops->phb_probe_mode(host);
 
-	if (!found)
-		pci_bus_update_busn_res_end(b, max);
+	if (host->ops && host->of_scan && host->ops->phb_of_scan_bus)
+		host->ops->phb_of_scan_bus(host);
+	else {
+		max = pci_scan_child_bus(b);
+		if (!found)
+			pci_bus_update_busn_res_end(b, max);
+	}
 
 	return b;
 }
+
+static void pci_of_scan_bus(struct pci_host_bridge *host)
+{
+	if (!host->ops)
+		return;
+
+
+	if (host->of_scan && host->ops->phb_of_scan_bus)
+		host->ops->phb_of_scan_bus(host);
+}
+
+struct pci_host_bridge *pci_scan_root_bridge(struct device *parent,
+		u32 db, struct pci_ops *ops, void *sysdata,
+		struct list_head *resources, struct pci_host_bridge_ops *phb_ops)
+{
+	struct pci_host_bridge *host;
+	struct pci_bus *bus;
+
+	host = pci_create_host_bridge(parent, PCI_DOMAIN(db), 
+			PCI_BUSNUM(db), resources, sysdata, phb_ops);
+	if (!host)
+		return NULL;
+
+	bus = __pci_scan_root_bus(host, ops);
+	if (!bus)
+		pci_free_host_bridge(host);
+
+	return host;
+}
+EXPORT_SYMBOL(pci_scan_root_bridge);
 
 struct pci_bus *pci_scan_root_bus(struct device *parent, u32 db,
 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
@@ -2066,7 +2104,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, u32 db,
 	struct pci_host_bridge *host;
 
 	host = pci_create_host_bridge(parent, PCI_DOMAIN(db), 
-			PCI_BUSNUM(db), resources, sysdata);
+			PCI_BUSNUM(db), resources, sysdata, NULL);
 	if (!host)
 		return NULL;
 

@@ -24,7 +24,8 @@ static void pci_release_host_bridge_dev(struct device *dev)
 
 struct pci_host_bridge *pci_create_host_bridge(
 		struct device *parent, u16 domain, u8 busnum, 
-		struct list_head *resources, void *sysdata)
+		struct list_head *resources, void *sysdata,
+		struct pci_host_bridge_ops *ops)
 {
 	int error;
 	struct pci_host_bridge *host;
@@ -45,6 +46,7 @@ struct pci_host_bridge *pci_create_host_bridge(
 	if (!host)
 		return NULL;
 
+	host->ops = ops;
 	host->busnum = busnum;
 	host->domain = domain;
 	host->dev.parent = parent;
@@ -52,8 +54,18 @@ struct pci_host_bridge *pci_create_host_bridge(
 	host->dev.release = pci_release_host_bridge_dev;
 	dev_set_drvdata(&host->dev, sysdata);
 
+	if (host->ops && host->ops->phb_assign_domain_nr)
+		host->ops->phb_assign_domain_nr(host);
+
 	dev_set_name(&host->dev, "pci%04x:%02x", host->domain, 
 			host->busnum);
+	if (host->ops && host->ops->phb_prepare) {
+		error = host->ops->phb_prepare(host);
+		if(error) {
+			kfree(host);
+			return NULL;
+		}
+	}
 
 	error = device_register(&host->dev);
 	if (error) {

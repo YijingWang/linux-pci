@@ -401,13 +401,25 @@ struct pci_host_bridge_window {
 	resource_size_t offset;		/* bus address + offset = CPU address */
 };
 
+struct pci_host_bridge;
+struct pci_host_bridge_ops {
+	void (*phb_set_root_bus_speed)(struct pci_host_bridge *host);
+	int (*phb_prepare)(struct pci_host_bridge *host);
+	/* Override domain number by host specific .phv_assign_domain_nr()  */
+	void (*phb_assign_domain_nr)(struct pci_host_bridge *); 
+	void (*phb_probe_mode)(struct pci_host_bridge *);
+	void (*phb_of_scan_bus)(struct pci_host_bridge *);
+};
+
 struct pci_host_bridge {
 	u16	domain;
 	u16 busnum;
+	bool of_scan;
 	struct device dev;
 	struct pci_bus *bus;		/* root bus */
 	struct list_head list;
 	struct list_head windows;	/* pci_host_bridge_windows */
+	struct pci_host_bridge_ops *ops;
 	void (*release_fn)(struct pci_host_bridge *);
 	void *release_data;
 };
@@ -420,7 +432,8 @@ void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
 int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge);
 struct pci_host_bridge *pci_create_host_bridge(
 		struct device *parent, u16 domain, u8 busnum,
-		struct list_head *resources, void *sysdata);
+		struct list_head *resources, void *sysdata,
+		struct pci_host_bridge_ops *ops);
 /*
  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
@@ -785,6 +798,9 @@ void pci_bus_release_busn_res(struct pci_bus *b);
 struct pci_bus *pci_scan_root_bus(struct device *parent, u32 dombus,
 					     struct pci_ops *ops, void *sysdata,
 					     struct list_head *resources);
+struct pci_host_bridge *pci_scan_root_bridge(struct device *parent, 
+		u32 dombus, struct pci_ops *ops, void *sysdata, 
+		struct list_head *resources, struct pci_host_bridge_ops *phb_ops);
 struct pci_bus *pci_add_new_bus(struct pci_bus *parent, struct pci_dev *dev,
 				int busnr);
 void pcie_update_link_speed(struct pci_bus *bus, u16 link_status);
