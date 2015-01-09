@@ -502,31 +502,6 @@ static struct pci_bus *pci_alloc_bus(struct pci_bus *parent)
 	return b;
 }
 
-static void pci_release_host_bridge_dev(struct device *dev)
-{
-	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
-
-	if (bridge->release_fn)
-		bridge->release_fn(bridge);
-
-	pci_free_resource_list(&bridge->windows);
-
-	kfree(bridge);
-}
-
-static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
-{
-	struct pci_host_bridge *bridge;
-
-	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-	if (!bridge)
-		return NULL;
-
-	INIT_LIST_HEAD(&bridge->windows);
-	bridge->bus = b;
-	return bridge;
-}
-
 static const unsigned char pcix_bus_speed[] = {
 	PCI_SPEED_UNKNOWN,		/* 0 */
 	PCI_SPEED_66MHz_PCIX,		/* 1 */
@@ -1889,54 +1864,41 @@ void __weak pcibios_remove_bus(struct pci_bus *bus)
 {
 }
 
-struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
-		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+static struct pci_bus *__pci_create_root_bus(
+		struct pci_host_bridge *bridge, struct pci_ops *ops,
+		void *sysdata)
 {
 	int error;
-	struct pci_host_bridge *bridge;
 	struct pci_bus *b, *b2;
-	struct resource_entry *window, *n;
+	struct resource_entry *window;
+	struct device *parent;
 	struct resource *res;
 	resource_size_t offset;
 	char bus_addr[64];
 	char *fmt;
-	u8	bus = PCI_BUSNUM(db);
 
+	parent = bridge->dev.parent;
 	b = pci_alloc_bus(NULL);
 	if (!b)
 		return NULL;
 
 	b->sysdata = sysdata;
 	b->ops = ops;
-	b->number = b->busn_res.start = bus;
+	b->number = b->busn_res.start = bridge->busnum;
 	pci_bus_assign_domain_nr(b, parent);
-	b2 = pci_find_bus(pci_domain_nr(b), bus);
+	b2 = pci_find_bus(pci_domain_nr(b), b->number);
 	if (b2) {
 		/* If we already got to this bus through a different bridge, ignore it */
 		dev_dbg(&b2->dev, "bus already known\n");
 		goto err_out;
 	}
 
-	bridge = pci_alloc_host_bridge(b);
-	if (!bridge)
-		goto err_out;
-
-	bridge->domain = PCI_DOMAIN(db);
-	bridge->dev.parent = parent;
-	bridge->dev.release = pci_release_host_bridge_dev;
-	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
-	error = pcibios_root_bridge_prepare(bridge);
-	if (error) {
-		kfree(bridge);
-		goto err_out;
-	}
-
-	error = device_register(&bridge->dev);
-	if (error) {
-		put_device(&bridge->dev);
-		goto err_out;
-	}
+	bridge->bus = b;
 	b->bridge = get_device(&bridge->dev);
+	error = pcibios_root_bridge_prepare(bridge);
+	if (error)
+		goto err_out;
+
 	device_enable_async_suspend(b->bridge);
 	pci_set_bus_of_node(b);
 
@@ -1945,10 +1907,11 @@ struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
 
 	b->dev.class = &pcibus_class;
 	b->dev.parent = b->bridge;
-	dev_set_name(&b->dev, "%04x:%02x", pci_domain_nr(b), bus);
+	dev_set_name(&b->dev, "%04x:%02x", bridge->domain, 
+			b->number);
 	error = device_register(&b->dev);
 	if (error)
-		goto class_dev_reg_err;
+		goto err_out;
 
 	pcibios_add_bus(b);
 
@@ -1961,12 +1924,11 @@ struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
 		printk(KERN_INFO "PCI host bridge to bus %s\n", dev_name(&b->dev));
 
 	/* Add initial resources to the bus */
-	resource_list_for_each_entry_safe(window, n, resources) {
-		list_move_tail(&window->node, &bridge->windows);
+	resource_list_for_each_entry(window, &bridge->windows) {
 		res = window->res;
 		offset = window->offset;
 		if (res->flags & IORESOURCE_BUS)
-			pci_bus_insert_busn_res(b, bus, res->end);
+			pci_bus_insert_busn_res(b, b->number, res->end);
 		else
 			pci_bus_add_resource(b, res, 0);
 		if (offset) {
@@ -1988,12 +1950,21 @@ struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
 
 	return b;
 
-class_dev_reg_err:
-	put_device(&bridge->dev);
-	device_unregister(&bridge->dev);
 err_out:
 	kfree(b);
 	return NULL;
+}
+
+struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
+		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+{
+	struct pci_host_bridge *host;
+
+	host = pci_create_host_bridge(parent, db, resources);
+	if (!host)
+		return NULL;
+	
+	return __pci_create_root_bus(host, ops, sysdata);
 }
 
 int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
@@ -2059,29 +2030,32 @@ void pci_bus_release_busn_res(struct pci_bus *b)
 			res, ret ? "can not be" : "is");
 }
 
-struct pci_bus *pci_scan_root_bus(struct device *parent, u32 db,
-		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+static struct pci_bus *__pci_scan_root_bus(
+		struct pci_host_bridge *host, struct pci_ops *ops,
+		void *sysdata)
 {
 	struct resource_entry *window;
 	bool found = false;
 	struct pci_bus *b;
 	int max;
 
-	resource_list_for_each_entry(window, resources)
+	resource_list_for_each_entry(window, &host->windows)
 		if (window->res->flags & IORESOURCE_BUS) {
 			found = true;
 			break;
 		}
 
-	b = pci_create_root_bus(parent, db, ops, sysdata, resources);
-	if (!b)
+	b = __pci_create_root_bus(host, ops, sysdata);
+	if (!b) {
+		pci_free_host_bridge(host);
 		return NULL;
+	}
 
 	if (!found) {
 		dev_info(&b->dev,
 		 "No busn resource found for root bus, will use [bus %02x-ff]\n",
-			PCI_BUSNUM(db));
-		pci_bus_insert_busn_res(b, PCI_BUSNUM(db), 255);
+			host->busnum);
+		pci_bus_insert_busn_res(b, b->number, 255);
 	}
 
 	max = pci_scan_child_bus(b);
@@ -2090,6 +2064,18 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, u32 db,
 		pci_bus_update_busn_res_end(b, max);
 
 	return b;
+}
+
+struct pci_bus *pci_scan_root_bus(struct device *parent, u32 db,
+		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+{
+	struct pci_host_bridge *host;
+
+	host = pci_create_host_bridge(parent, db, resources);
+	if (!host)
+		return NULL;
+
+	return __pci_scan_root_bus(host, ops, sysdata);
 }
 EXPORT_SYMBOL(pci_scan_root_bus);
 
