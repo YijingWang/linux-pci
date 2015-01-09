@@ -1888,6 +1888,8 @@ static struct pci_bus *__pci_create_root_bus(
 
 	bridge->bus = b;
 	b->bridge = get_device(&bridge->dev);
+	if (bridge->ops && bridge->ops->phb_set_root_bus_speed)
+		bridge->ops->phb_set_root_bus_speed(bridge);
 	error = pcibios_root_bridge_prepare(bridge);
 	if (error)
 		goto err_out;
@@ -1953,7 +1955,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
 {
 	struct pci_host_bridge *host;
 
-	host = pci_create_host_bridge(parent, db, resources, sysdata);
+	host = pci_create_host_bridge(parent, db, resources, sysdata, NULL);
 	if (!host)
 		return NULL;
 	
@@ -2050,10 +2052,13 @@ static struct pci_bus *__pci_scan_root_bus(
 		pci_bus_insert_busn_res(b, b->number, 255);
 	}
 
-	max = pci_scan_child_bus(b);
-
-	if (!found)
-		pci_bus_update_busn_res_end(b, max);
+	if (host->ops && host->ops->phb_of_scan_bus) {
+		host->ops->phb_of_scan_bus(host);
+	} else {
+		max = pci_scan_child_bus(b);
+		if (!found)
+			pci_bus_update_busn_res_end(b, max);
+	}
 
 	return b;
 }
@@ -2063,7 +2068,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, u32 db,
 {
 	struct pci_host_bridge *host;
 
-	host = pci_create_host_bridge(parent, db, resources, sysdata);
+	host = pci_create_host_bridge(parent, db, resources, sysdata, NULL);
 	if (!host)
 		return NULL;
 

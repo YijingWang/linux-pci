@@ -400,6 +400,13 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
 	return (pdev->error_state != pci_channel_io_normal);
 }
 
+struct pci_host_bridge;
+struct pci_host_bridge_ops {
+	void (*phb_set_root_bus_speed)(struct pci_host_bridge *host);
+	int (*phb_prepare)(struct pci_host_bridge *host);
+	void (*phb_of_scan_bus)(struct pci_host_bridge *);
+};
+
 struct pci_host_bridge {
 	u16	domain;
 	u16 busnum;
@@ -407,6 +414,7 @@ struct pci_host_bridge {
 	struct pci_bus *bus;		/* root bus */
 	struct list_head windows;	/* resource_entry */
 	struct list_head list;
+	struct pci_host_bridge_ops *ops;
 	void (*release_fn)(struct pci_host_bridge *);
 	void *release_data;
 };
@@ -418,8 +426,8 @@ void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
 
 int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge);
 struct pci_host_bridge *pci_create_host_bridge(
-		struct device *parent, u32 dombus, 
-		struct list_head *resources, void *sysdata);
+		struct device *parent, u32 dombus, struct list_head *resources, 
+		void *sysdata, struct pci_host_bridge_ops *ops);
 /*
  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for

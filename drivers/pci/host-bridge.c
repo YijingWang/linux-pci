@@ -23,8 +23,8 @@ static void pci_release_host_bridge_dev(struct device *dev)
 }
 
 struct pci_host_bridge *pci_create_host_bridge(
-		struct device *parent, u32 db, 
-		struct list_head *resources, void *sysdata)
+		struct device *parent, u32 db, struct list_head *resources, 
+		void *sysdata, struct pci_host_bridge_ops *ops)
 {
 	int error;
 	int bus = PCI_BUSNUM(db);
@@ -56,6 +56,7 @@ struct pci_host_bridge *pci_create_host_bridge(
 		}
 	mutex_unlock(&phb_mutex);
 
+	host->ops = ops;
 	host->dev.parent = parent;
 	INIT_LIST_HEAD(&host->windows);
 	host->dev.release = pci_release_host_bridge_dev;
@@ -63,6 +64,13 @@ struct pci_host_bridge *pci_create_host_bridge(
 	dev_set_name(&host->dev, "pci%04x:%02x", host->domain, 
 			host->busnum);
 
+	if (host->ops && host->ops->phb_prepare) {
+		error = host->ops->phb_prepare(host);
+		if(error) {
+			kfree(host);
+			return NULL;
+		}
+	}
 	error = device_register(&host->dev);
 	if (error) {
 		put_device(&host->dev);
