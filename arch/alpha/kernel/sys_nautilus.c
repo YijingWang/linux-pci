@@ -206,7 +206,7 @@ nautilus_init_pci(void)
 	unsigned long memtop = max_low_pfn << PAGE_SHIFT;
 
 	/* Scan our single hose.  */
-	bus = pci_scan_bus(0, alpha_mv.pci_ops, hose);
+	bus = pci_scan_bus_legacy(0, alpha_mv.pci_ops, hose);
 	hose->bus = bus;
 	pcibios_claim_one_bus(bus);
 
