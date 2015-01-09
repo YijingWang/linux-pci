@@ -92,8 +92,8 @@ static void pcibios_scanbus(struct pci_controller *hose)
 	pci_add_resource_offset(&resources,
 				hose->mem_resource, hose->mem_offset);
 	pci_add_resource_offset(&resources, hose->io_resource, hose->io_offset);
-	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
-				&resources);
+	bus = pci_scan_root_bus(NULL, PCI_DOMBUS(hose->index, next_busno), 
+			hose->pci_ops, hose, &resources);
 	if (!bus)
 		pci_free_resource_list(&resources);
 

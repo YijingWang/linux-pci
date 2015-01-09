@@ -52,8 +52,9 @@ static void pcibios_scanbus(struct pci_channel *hose)
 		pci_add_resource_offset(&resources, res, offset);
 	}
 
-	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
-				&resources);
+	bus = pci_scan_root_bus(NULL, 
+			PCI_DOMBUS(hose->index, next_busno), 
+			hose->pci_ops, hose, &resources);
 	hose->bus = bus;
 
 	need_domain_info = need_domain_info || hose->index;

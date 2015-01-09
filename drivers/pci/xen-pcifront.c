@@ -477,8 +477,9 @@ static int pcifront_scan_root(struct pcifront_device *pdev,
 
 	pci_lock_rescan_remove();
 
-	b = pci_scan_root_bus(&pdev->xdev->dev, bus,
-				  &pcifront_bus_ops, sd, &resources);
+	b = pci_scan_root_bus(&pdev->xdev->dev, 
+			PCI_DOMBUS(sd->domain, bus),
+			&pcifront_bus_ops, sd, &resources);
 	if (!b) {
 		dev_err(&pdev->xdev->dev,
 			"Error creating PCI Frontend Bus!\n");

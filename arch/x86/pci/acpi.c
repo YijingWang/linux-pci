@@ -424,9 +424,9 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 		}
 
 		if (!setup_mcfg_map(info, domain, (u8)root->secondary.start,
-				    (u8)root->secondary.end, root->mcfg_addr))
-			bus = pci_create_root_bus(NULL, busnum, &pci_root_ops,
-						  sd, &resources);
+					(u8)root->secondary.end, root->mcfg_addr)) 
+			bus = pci_create_root_bus(NULL, PCI_DOMBUS(domain, busnum), 
+					&pci_root_ops, sd, &resources);
 
 		if (bus) {
 			pci_scan_child_bus(bus);

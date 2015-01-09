@@ -336,8 +336,9 @@ common_init_pci(void)
 		pci_add_resource_offset(&resources, hose->mem_space,
 					hose->mem_space->start);
 
-		bus = pci_scan_root_bus(NULL, next_busno, alpha_mv.pci_ops,
-					hose, &resources);
+		bus = pci_scan_root_bus(NULL, 
+				PCI_DOMBUS(hose->index, next_busno), alpha_mv.pci_ops,
+				hose, &resources);
 		if (bus)
 			pci_bus_add_devices(bus);
 		hose->bus = bus;
