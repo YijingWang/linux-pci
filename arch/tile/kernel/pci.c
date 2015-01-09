@@ -306,8 +306,9 @@ int __init pcibios_init(void)
 
 			pci_add_resource(&resources, &ioport_resource);
 			pci_add_resource(&resources, &iomem_resource);
-			bus = pci_scan_root_bus(NULL, 0, controller->ops,
-						controller, &resources);
+			bus = pci_scan_root_bus(NULL, 
+					PCI_DOMBUS(controller->index, 0), controller->ops,
+					controller, &resources);
 			if (bus)
 				pci_bus_add_devices(bus);
 			controller->root_bus = bus;
