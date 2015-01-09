@@ -272,6 +272,7 @@ sn_pci_controller_fixup(int segment, int busnum, struct pci_bus *bus)
 		kfree(res);
 		kfree(controller);
 	}
+	pci_bus_add_devices(bus);
 }
 
 /*

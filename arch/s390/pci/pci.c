@@ -756,7 +756,7 @@ static int zpci_scan_bus(struct zpci_dev *zdev)
 		zpci_cleanup_bus_resources(zdev);
 		return -EIO;
 	}
-
+	pci_bus_add_devices(zdev->bus);
 	zdev->bus->max_bus_speed = zdev->max_bus_speed;
 	return 0;
 }
