@@ -1362,6 +1362,7 @@ static void pcibios_scan_phb(struct pci_controller *hose)
 	hose->bus = bus;
 
 	hose->last_busno = bus->busn_res.end;
+	pci_bus_add_devices(bus);
 }
 
 static int __init pcibios_init(void)
