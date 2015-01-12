@@ -110,7 +110,7 @@ static void fixup_winbond_82c105(struct pci_dev* dev)
 DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_WINBOND, PCI_DEVICE_ID_WINBOND_82C105,
 			 fixup_winbond_82c105);
 
-int pseries_set_root_bus_speed(struct pci_host_bridge *bridge)
+void pseries_set_root_bus_speed(struct pci_host_bridge *bridge)
 {
 	struct device_node *dn, *pdn;
 	struct pci_bus *bus;
@@ -121,7 +121,7 @@ int pseries_set_root_bus_speed(struct pci_host_bridge *bridge)
 
 	dn = pcibios_get_phb_of_node(bus);
 	if (!dn)
-		return 0;
+		return;
 
 	for (pdn = dn; pdn != NULL; pdn = of_get_next_parent(pdn)) {
 		rc = of_property_read_u32_array(pdn,
@@ -135,7 +135,7 @@ int pseries_set_root_bus_speed(struct pci_host_bridge *bridge)
 
 	if (rc) {
 		pr_debug("no ibm,pcie-link-speed-stats property\n");
-		return 0;
+		return;
 	}
 
 	switch (pcie_link_speed_stats[0]) {
@@ -168,5 +168,5 @@ int pseries_set_root_bus_speed(struct pci_host_bridge *bridge)
 		break;
 	}
 
-	return 0;
+	return;
 }

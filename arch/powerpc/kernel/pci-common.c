@@ -767,14 +767,33 @@ int pci_proc_domain(struct pci_bus *bus)
 	return 1;
 }
 
-int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
+static void pci_host_bridge_set_root_bus_speed(
+		struct pci_host_bridge *bridge)
 {
 	if (ppc_md.pcibios_set_root_bus_speed)
-		return ppc_md.pcibios_set_root_bus_speed(bridge);
-	
-	return 0;
+		ppc_md.pcibios_set_root_bus_speed(bridge);
 }
 
+static void pci_host_bridge_of_scan_bus(struct pci_host_bridge *host)
+{
+	int mode = PCI_PROBE_NORMAL;
+	struct pci_bus *bus = host->bus;
+	struct pci_controller *hose = dev_get_drvdata(&host->dev);
+
+	/* Get probe mode and perform scan */
+	if (hose->dn && ppc_md.pci_probe_mode)
+		mode = ppc_md.pci_probe_mode(bus);
+
+	pr_debug("    probe mode: %d\n", mode);
+	if (mode == PCI_PROBE_DEVTREE)
+		of_scan_bus(hose->dn, bus);
+
+	if (mode == PCI_PROBE_NORMAL) {
+		pci_bus_update_busn_res_end(bus, 255);
+		hose->last_busno = pci_scan_child_bus(bus);
+		pci_bus_update_busn_res_end(bus, hose->last_busno);
+	}
+}
 /* This header fixup will do the resource fixup for all devices as they are
  * probed, but not for bridge ranges
  */
@@ -1587,6 +1606,11 @@ struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
 	return of_node_get(hose->dn);
 }
 
+static struct pci_host_bridge_ops phb_ops = {
+	.phb_set_root_bus_speed = pci_host_bridge_set_root_bus_speed,
+	.phb_of_scan_bus = pci_host_bridge_of_scan_bus,
+};
+
 /**
  * pci_scan_phb - Given a pci_controller, setup and scan the PCI bus
  * @hose: Pointer to the PCI host controller instance structure
@@ -1594,9 +1618,8 @@ struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
 void pcibios_scan_phb(struct pci_controller *hose)
 {
 	LIST_HEAD(resources);
-	struct pci_bus *bus;
+	struct pci_host_bridge *host;
 	struct device_node *node = hose->dn;
-	int mode;
 
 	pr_debug("PCI: Scanning PHB %s\n", of_node_full_name(node));
 
@@ -1612,30 +1635,16 @@ void pcibios_scan_phb(struct pci_controller *hose)
 	pci_add_resource(&resources, &hose->busn);
 
 	/* Create an empty bus for the toplevel */
-	bus = pci_create_root_bus(hose->parent, 
+	host = pci_scan_root_bridge(hose->parent, 
 			PCI_DOMBUS(hose->global_number, hose->first_busno),
-			hose->ops, hose, &resources);
-	if (bus == NULL) {
-		pr_err("Failed to create bus for PCI domain %04x\n",
+			hose->ops, hose, &resources, &phb_ops);
+	if (host == NULL) {
+		pr_err("Failed to create host bridge for PCI domain %04x\n",
 			hose->global_number);
 		pci_free_resource_list(&resources);
 		return;
 	}
-	hose->bus = bus;
-
-	/* Get probe mode and perform scan */
-	mode = PCI_PROBE_NORMAL;
-	if (node && ppc_md.pci_probe_mode)
-		mode = ppc_md.pci_probe_mode(bus);
-	pr_debug("    probe mode: %d\n", mode);
-	if (mode == PCI_PROBE_DEVTREE)
-		of_scan_bus(node, bus);
-
-	if (mode == PCI_PROBE_NORMAL) {
-		pci_bus_update_busn_res_end(bus, 255);
-		hose->last_busno = pci_scan_child_bus(bus);
-		pci_bus_update_busn_res_end(bus, hose->last_busno);
-	}
+	hose->bus = host->bus;
 
 	/* Platform gets a chance to do some global fixups before
 	 * we proceed to resource allocation
@@ -1644,9 +1653,9 @@ void pcibios_scan_phb(struct pci_controller *hose)
 		ppc_md.pcibios_fixup_phb(hose);
 
 	/* Configure PCI Express settings */
-	if (bus && !pci_has_flag(PCI_PROBE_ONLY)) {
+	if (host->bus && !pci_has_flag(PCI_PROBE_ONLY)) {
 		struct pci_bus *child;
-		list_for_each_entry(child, &bus->children, node)
+		list_for_each_entry(child, &host->bus->children, node)
 			pcie_bus_configure_settings(child);
 	}
 }
