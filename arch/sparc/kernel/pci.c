@@ -650,12 +650,25 @@ static void pci_claim_bus_resources(struct pci_bus *bus)
 		pci_claim_bus_resources(child_bus);
 }
 
+static void pci_host_bridge_of_scan_bus(
+		struct pci_host_bridge *host)
+{
+	struct pci_pbm_info *pbm = dev_get_drvdata(&host->dev);
+	struct device_node *node = pbm->op->dev.of_node;
+
+	pci_of_scan_bus(pbm, node, host->bus);
+}
+
+static struct pci_host_bridge_ops phb_ops = {
+	.phb_of_scan_bus = pci_host_bridge_of_scan_bus,
+};
+
 struct pci_bus *pci_scan_one_pbm(struct pci_pbm_info *pbm,
 				 struct device *parent)
 {
 	LIST_HEAD(resources);
 	struct device_node *node = pbm->op->dev.of_node;
-	struct pci_bus *bus;
+	struct pci_host_bridge *host;
 
 	printk("PCI: Scanning PBM %s\n", node->full_name);
 
@@ -667,23 +680,22 @@ struct pci_bus *pci_scan_one_pbm(struct pci_pbm_info *pbm,
 	pbm->busn.end	= pbm->pci_last_busno;
 	pbm->busn.flags	= IORESOURCE_BUS;
 	pci_add_resource(&resources, &pbm->busn);
-	bus = pci_create_root_bus(parent, 
+	host = pci_scan_root_bridge(parent, 
 			PCI_DOMBUS(pbm->index, pbm->pci_first_busno), 
-			pbm->pci_ops, pbm, &resources);
-	if (!bus) {
-		printk(KERN_ERR "Failed to create bus for %s\n",
+			pbm->pci_ops, pbm, &resources, &phb_ops);
+	if (!host) {
+		printk(KERN_ERR "Failed to create host bridge for %s\n",
 		       node->full_name);
 		pci_free_resource_list(&resources);
 		return NULL;
 	}
 
-	pci_of_scan_bus(pbm, node, bus);
-	pci_bus_add_devices(bus);
-	pci_bus_register_of_sysfs(bus);
+	pci_bus_add_devices(host->bus);
+	pci_bus_register_of_sysfs(host->bus);
 
-	pci_claim_bus_resources(bus);
+	pci_claim_bus_resources(host->bus);
 
-	return bus;
+	return host->bus;
 }
 
 void pcibios_fixup_bus(struct pci_bus *pbus)
