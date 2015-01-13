@@ -199,8 +199,6 @@ int __init pcibios_init(void);
 
 void pcibios_fixup_bus(struct pci_bus *bus);
 
-#define pci_domain_nr(bus) (((struct pci_controller *)(bus)->sysdata)->index)
-
 /*
  * This decides whether to display the domain number in /proc.
  */

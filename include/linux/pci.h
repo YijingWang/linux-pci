@@ -1321,6 +1321,7 @@ void pci_cfg_access_unlock(struct pci_dev *dev);
 #ifdef CONFIG_PCI_DOMAINS
 extern int pci_domains_supported;
 int pci_get_new_domain_nr(void);
+int pci_domain_nr(struct pci_bus *bus);
 #else
 enum { pci_domains_supported = 0 };
 static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
@@ -1334,15 +1335,11 @@ static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
  * domains then this implementation will be used
  */
 #ifdef CONFIG_PCI_DOMAINS_GENERIC
-static inline int pci_domain_nr(struct pci_bus *bus)
-{
-	return bus->domain_nr;
-}
 void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent);
 void pci_host_assign_domain_nr(struct pci_host_bridge *host);
 #else
 static inline void pci_bus_assign_domain_nr(struct pci_bus *bus,
-					struct device *parent)
+		                    struct device *parent)
 {
 }
 static inline void pci_host_assign_domain_nr(struct pci_host_bridge *host)
