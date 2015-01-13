@@ -1852,7 +1852,7 @@ void __weak pcibios_remove_bus(struct pci_bus *bus)
 {
 }
 
-static struct pci_bus *__pci_create_root_bus(
+static struct pci_bus *pci_create_root_bus(
 		struct pci_host_bridge *bridge, struct pci_ops *ops)
 {
 	int error;
@@ -1935,18 +1935,6 @@ err_out:
 	return NULL;
 }
 
-struct pci_bus *pci_create_root_bus(struct device *parent, u32 db,
-		struct pci_ops *ops, void *sysdata, struct list_head *resources)
-{
-	struct pci_host_bridge *host;
-
-	host = pci_create_host_bridge(parent, db, resources, sysdata, NULL);
-	if (!host)
-		return NULL;
-	
-	return __pci_create_root_bus(host, ops);
-}
-
 int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
 {
 	struct resource *res = &b->busn_res;
@@ -2024,7 +2012,7 @@ static struct pci_bus *__pci_scan_root_bus(
 			break;
 		}
 
-	b = __pci_create_root_bus(host, ops);
+	b = pci_create_root_bus(host, ops);
 	if (!b) {
 		pci_free_host_bridge(host);
 		return NULL;
@@ -2086,18 +2074,19 @@ struct pci_bus *pci_scan_bus_legacy(u32 db, struct pci_ops *ops,
 					void *sysdata)
 {
 	LIST_HEAD(resources);
-	struct pci_bus *b;
+	struct pci_host_bridge *host;
 
 	pci_add_resource(&resources, &ioport_resource);
 	pci_add_resource(&resources, &iomem_resource);
 	pci_add_resource(&resources, &busn_resource);
-	b = pci_create_root_bus(NULL, db, ops, sysdata, &resources);
-	if (b) {
-		pci_scan_child_bus(b);
+	host = pci_create_host_bridge(NULL, db, sysdata, &resources, NULL);
+	if (host) {
+		__pci_scan_root_bus(host, ops);
+		return host->bus;
 	} else {
 		pci_free_resource_list(&resources);
 	}
-	return b;
+	return NULL;
 }
 EXPORT_SYMBOL(pci_scan_bus_legacy);
 
