@@ -4579,11 +4579,6 @@ void pci_host_assign_domain_nr(struct pci_host_bridge *host)
 {
 	host->domain = pci_assign_domain_nr(host->dev.parent);
 }
-
-void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent)
-{
-	bus->domain_nr = pci_assign_domain_nr(parent);
-}
 #endif
 #endif
 
