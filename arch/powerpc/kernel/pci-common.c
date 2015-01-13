@@ -769,9 +769,9 @@ int pci_proc_domain(struct pci_bus *bus)
 
 int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
 {
-	if (ppc_md.pcibios_root_bridge_prepare)
-		return ppc_md.pcibios_root_bridge_prepare(bridge);
-
+	if (ppc_md.pcibios_set_root_bus_speed)
+		return ppc_md.pcibios_set_root_bus_speed(bridge);
+	
 	return 0;
 }
 

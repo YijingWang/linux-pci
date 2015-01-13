@@ -63,7 +63,7 @@ extern int dlpar_detach_node(struct device_node *);
 
 /* PCI root bridge prepare function override for pseries */
 struct pci_host_bridge;
-int pseries_root_bridge_prepare(struct pci_host_bridge *bridge);
+int pseries_set_root_bus_speed(struct pci_host_bridge *bridge);
 
 unsigned long pseries_memory_block_size(void);
 
