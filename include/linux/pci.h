@@ -406,6 +406,7 @@ struct pci_host_bridge {
 	struct device dev;
 	struct pci_bus *bus;		/* root bus */
 	struct list_head windows;	/* resource_entry */
+	struct list_head list;
 	void (*release_fn)(struct pci_host_bridge *);
 	void *release_data;
 };

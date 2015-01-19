@@ -1869,7 +1869,7 @@ static struct pci_bus *__pci_create_root_bus(
 		void *sysdata)
 {
 	int error;
-	struct pci_bus *b, *b2;
+	struct pci_bus *b;
 	struct resource_entry *window;
 	struct device *parent;
 	struct resource *res;
@@ -1886,12 +1886,6 @@ static struct pci_bus *__pci_create_root_bus(
 	b->ops = ops;
 	b->number = b->busn_res.start = bridge->busnum;
 	pci_bus_assign_domain_nr(b, parent);
-	b2 = pci_find_bus(pci_domain_nr(b), b->number);
-	if (b2) {
-		/* If we already got to this bus through a different bridge, ignore it */
-		dev_dbg(&b2->dev, "bus already known\n");
-		goto err_out;
-	}
 
 	bridge->bus = b;
 	b->bridge = get_device(&bridge->dev);

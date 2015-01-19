@@ -8,6 +8,9 @@
 
 #include "pci.h"
 
+static LIST_HEAD(pci_host_bridge_list);
+static DEFINE_MUTEX(phb_mutex);
+
 static void pci_release_host_bridge_dev(struct device *dev)
 {
 	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
@@ -25,7 +28,7 @@ struct pci_host_bridge *pci_create_host_bridge(
 	int error;
 	int bus = PCI_BUSNUM(db);
 	int domain = PCI_DOMAIN(db);
-	struct pci_host_bridge *host;
+	struct pci_host_bridge *host, *temp;
 	struct resource_entry *window, *n;
 
 	host = kzalloc(sizeof(*host), GFP_KERNEL);
@@ -39,6 +42,18 @@ struct pci_host_bridge *pci_create_host_bridge(
 	 * number instead PCI_DOMAIN(db).
 	 */
 	pci_host_assign_domain_nr(host);
+
+	mutex_lock(&phb_mutex);
+	list_for_each_entry(temp, &pci_host_bridge_list, list)
+		if (temp->domain == host->domain
+				&& temp->busnum == host->busnum) {
+			dev_dbg(&host->dev, "pci host bridge pci%04x:%02x exist\n",
+					host->domain, host->busnum);
+			mutex_unlock(&phb_mutex);
+			kfree(host);
+			return NULL;
+		}
+	mutex_unlock(&phb_mutex);
 
 	host->dev.parent = parent;
 	INIT_LIST_HEAD(&host->windows);
@@ -55,12 +70,19 @@ struct pci_host_bridge *pci_create_host_bridge(
 	resource_list_for_each_entry_safe(window, n, resources)
 		list_move_tail(&window->node, &host->windows);
 
+	mutex_lock(&phb_mutex);
+	list_add_tail(&host->list, &pci_host_bridge_list);
+	mutex_unlock(&phb_mutex);
 	return host;
 }
 EXPORT_SYMBOL(pci_create_host_bridge);
 
 void pci_free_host_bridge(struct pci_host_bridge *host)
 {
+	mutex_lock(&phb_mutex);
+	list_del(&host->list);
+	mutex_unlock(&phb_mutex);
+
 	device_unregister(&host->dev);
 }
 
