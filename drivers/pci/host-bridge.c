@@ -92,9 +92,7 @@ struct pci_host_bridge *pci_create_host_bridge(
 			pr_warn("pci host bridge pci%04x:%02x exist\n",
 					host->domain, bus);
 			mutex_unlock(&pci_host_mutex);
-			pci_free_resource_list(&host->windows);
-			kfree(host);
-			return NULL;
+			goto free_res;
 		}
 	}
 	list_add_tail(&host->list, &pci_host_bridge_list);
@@ -105,6 +103,10 @@ struct pci_host_bridge *pci_create_host_bridge(
 	dev_set_name(&host->dev, "pci%04x:%02x",
 			host->domain, bus);
 
+	error = pcibios_root_bridge_prepare(host);
+	if (error)
+		goto list_del;
+
 	error = device_register(&host->dev);
 	if (error) {
 		put_device(&host->dev);
@@ -112,6 +114,14 @@ struct pci_host_bridge *pci_create_host_bridge(
 	}
 
 	return host;
+list_del:
+	mutex_lock(&pci_host_mutex);
+	list_del(&host->list);
+	mutex_unlock(&pci_host_mutex);
+free_res:
+	pci_free_resource_list(&host->windows);
+	kfree(host);
+	return NULL;
 }
 
 void pci_free_host_bridge(struct pci_host_bridge *host)
