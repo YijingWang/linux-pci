@@ -647,7 +647,7 @@ static struct pci_bus *xilinx_pcie_scan_bus(int nr, struct pci_sys_data *sys)
 	struct pci_bus *bus;
 
 	port->root_busno = sys->busnr;
-	bus = pci_scan_root_bus(port->dev, sys->busnr, &xilinx_pcie_ops,
+	bus = pci_scan_root_bus(port->dev, -1, sys->busnr, &xilinx_pcie_ops,
 				sys, &sys->resources);
 
 	return bus;

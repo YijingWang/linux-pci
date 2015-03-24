@@ -755,7 +755,7 @@ static struct pci_bus *mvebu_pcie_scan_bus(int nr, struct pci_sys_data *sys)
 	struct mvebu_pcie *pcie = sys_to_pcie(sys);
 	struct pci_bus *bus;
 
-	bus = pci_create_root_bus(&pcie->pdev->dev, sys->busnr,
+	bus = pci_create_root_bus(&pcie->pdev->dev, -1, sys->busnr,
 				  &mvebu_pcie_ops, sys, &sys->resources);
 	if (!bus)
 		return NULL;

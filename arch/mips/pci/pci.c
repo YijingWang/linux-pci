@@ -92,8 +92,8 @@ static void pcibios_scanbus(struct pci_controller *hose)
 	pci_add_resource_offset(&resources,
 				hose->mem_resource, hose->mem_offset);
 	pci_add_resource_offset(&resources, hose->io_resource, hose->io_offset);
-	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
-				&resources);
+	bus = pci_scan_root_bus(NULL, hose->index, next_busno,
+			hose->pci_ops, hose, &resources);
 	hose->bus = bus;
 
 	need_domain_info = need_domain_info || hose->index;

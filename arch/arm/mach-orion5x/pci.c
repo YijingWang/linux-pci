@@ -558,11 +558,11 @@ int __init orion5x_pci_sys_setup(int nr, struct pci_sys_data *sys)
 struct pci_bus __init *orion5x_pci_sys_scan_bus(int nr, struct pci_sys_data *sys)
 {
 	if (nr == 0)
-		return pci_scan_root_bus(NULL, sys->busnr, &pcie_ops, sys,
+		return pci_scan_root_bus(NULL, -1, sys->busnr, &pcie_ops, sys,
 					 &sys->resources);
 
 	if (nr == 1 && !orion5x_pci_disabled)
-		return pci_scan_root_bus(NULL, sys->busnr, &pci_ops, sys,
+		return pci_scan_root_bus(NULL, -1, sys->busnr, &pci_ops, sys,
 					 &sys->resources);
 
 	BUG();

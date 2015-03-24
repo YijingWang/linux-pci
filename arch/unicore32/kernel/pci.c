@@ -258,7 +258,7 @@ static int __init pci_common_init(void)
 
 	pci_puv3_preinit();
 
-	puv3_bus = pci_scan_bus(0, &pci_puv3_ops, NULL);
+	puv3_bus = pci_scan_bus(0, 0, &pci_puv3_ops, NULL);
 
 	if (!puv3_bus)
 		panic("PCI: unable to scan bus!");

@@ -32,7 +32,7 @@ void leon_pci_init(struct platform_device *ofdev, struct leon_pci_info *info)
 	info->busn.flags = IORESOURCE_BUS;
 	pci_add_resource(&resources, &info->busn);
 
-	root_bus = pci_scan_root_bus(&ofdev->dev, 0, info->ops, info,
+	root_bus = pci_scan_root_bus(&ofdev->dev, 0, 0, info->ops, info,
 				     &resources);
 	if (!root_bus) {
 		pci_free_resource_list(&resources);
