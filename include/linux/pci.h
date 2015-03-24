@@ -1320,6 +1320,7 @@ void pci_cfg_access_unlock(struct pci_dev *dev);
 #ifdef CONFIG_PCI_DOMAINS
 extern int pci_domains_supported;
 int pci_get_new_domain_nr(void);
+int pci_domain_nr(struct pci_bus *bus);
 #else
 enum { pci_domains_supported = 0 };
 static inline int pci_domain_nr(struct pci_bus *bus) { return 0; }
@@ -1332,12 +1333,6 @@ static inline int pci_get_new_domain_nr(void) { return -ENOSYS; }
  * architecture does not need custom management of PCI
  * domains then this implementation will be used
  */
-#ifdef CONFIG_PCI_DOMAINS_GENERIC
-static inline int pci_domain_nr(struct pci_bus *bus)
-{
-	return bus->domain_nr;
-}
-#endif
 
 /* some architectures require additional setup to direct VGA traffic */
 typedef int (*arch_set_vga_state_t)(struct pci_dev *pdev, bool decode,
