@@ -1903,6 +1903,8 @@ static struct pci_bus *__pci_create_root_bus(
 	bridge->bus = b;
 	b->bridge = get_device(&bridge->dev);
 
+	if (bridge->ops && bridge->ops->set_root_bus_speed)
+		bridge->ops->set_root_bus_speed(bridge);
 	pcibios_set_root_bus_speed(bridge);
 	device_enable_async_suspend(b->bridge);
 	pci_set_bus_of_node(b);
@@ -1974,7 +1976,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent,
 		return NULL;
 	}
 
-	host = pci_create_host_bridge(parent, domain, sysdata, resources);
+	host = pci_create_host_bridge(parent, domain, sysdata,
+			resources, NULL);
 	if (!host)
 		return NULL;
 
@@ -2084,7 +2087,8 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 			bus);
 	}
 
-	host = pci_create_host_bridge(parent, domain, sysdata, resources);
+	host = pci_create_host_bridge(parent, domain, sysdata,
+			resources, NULL);
 	if (!host) {
 		kfree(busn_resource);
 		return NULL;
