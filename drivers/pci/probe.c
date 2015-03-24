@@ -1844,22 +1844,6 @@ unsigned int pci_scan_child_bus(struct pci_bus *bus)
 }
 EXPORT_SYMBOL_GPL(pci_scan_child_bus);
 
-/**
- * pcibios_root_bridge_prepare - Platform-specific host bridge setup.
- * @bridge: Host bridge to set up.
- *
- * Default empty implementation.  Replace with an architecture-specific setup
- * routine, if necessary.
- */
-int __weak pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
-{
-	return 0;
-}
-
-void __weak pcibios_set_root_bus_speed(struct pci_host_bridge *bridge)
-{
-}
-
 void __weak pcibios_add_bus(struct pci_bus *bus)
 {
 }
@@ -1896,7 +1880,7 @@ static struct pci_bus *__pci_create_root_bus(
 
 	if (bridge->ops && bridge->ops->set_root_bus_speed)
 		bridge->ops->set_root_bus_speed(bridge);
-	pcibios_set_root_bus_speed(bridge);
+
 	device_enable_async_suspend(b->bridge);
 	pci_set_bus_of_node(b);
 
