@@ -397,33 +397,6 @@ static void cleanup_bridge(struct acpiphp_bridge *bridge)
 	acpi_unlock_hp_context();
 }
 
-/**
- * acpiphp_max_busnr - return the highest reserved bus number under the given bus.
- * @bus: bus to start search with
- */
-static unsigned char acpiphp_max_busnr(struct pci_bus *bus)
-{
-	struct pci_bus *tmp;
-	unsigned char max, n;
-
-	/*
-	 * pci_bus_max_busnr will return the highest
-	 * reserved busnr for all these children.
-	 * that is equivalent to the bus->subordinate
-	 * value.  We don't want to use the parent's
-	 * bus->subordinate value because it could have
-	 * padding in it.
-	 */
-	max = bus->busn_res.start;
-
-	list_for_each_entry(tmp, &bus->children, node) {
-		n = pci_bus_max_busnr(tmp);
-		if (n > max)
-			max = n;
-	}
-	return max;
-}
-
 static void acpiphp_set_acpi_region(struct acpiphp_slot *slot)
 {
 	struct acpiphp_func *func;
@@ -489,7 +462,7 @@ static void enable_slot(struct acpiphp_slot *slot)
 	LIST_HEAD(add_list);
 
 	acpiphp_rescan_slot(slot);
-	max = acpiphp_max_busnr(bus);
+	max = pci_bus_child_max_busnr(bus);
 	for (pass = 0; pass < 2; pass++) {
 		list_for_each_entry(dev, &bus->devices, bus_list) {
 			if (PCI_SLOT(dev->devfn) != slot->device)
