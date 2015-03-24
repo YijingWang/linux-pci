@@ -8,6 +8,9 @@
 
 #include "pci.h"
 
+static LIST_HEAD(pci_host_bridge_list);
+static DEFINE_MUTEX(pci_host_mutex);
+
 static void pci_release_host_bridge_dev(struct device *dev)
 {
 	struct resource_entry *entry;
@@ -25,12 +28,64 @@ static void pci_release_host_bridge_dev(struct device *dev)
 	kfree(bridge);
 }
 
+static int pci_host_busn_res_check(
+		struct pci_host_bridge *new, struct pci_host_bridge *old)
+{
+	int i;
+	bool conflict;
+	struct resource_entry *entry;
+	struct resource *res_new = NULL, *res_old = NULL;
+
+	entry = pci_busn_resource(&old->windows);
+	res_old = entry->res;
+	entry = pci_busn_resource(&new->windows);
+	res_new = entry->res;
+
+	conflict = resource_overlaps(res_new, res_old);
+	if (conflict) {
+		/*
+		 * We hope every host bridge has its own exclusive
+		 * busn resource, then if new host bridge's busn
+		 * resource conflicts with existing host bridge,
+		 * we could fail it. But in reality, firmware may
+		 * doesn't supply busn resource to every host bridge.
+		 * Or worse, supply the wrong busn resource to
+		 * host bridge. In order to avoid the introduction of
+		 * regression, we try to adjust busn resource for
+		 * both new and existing host bridges. But if root
+		 * bus number conflicts, must fail it.
+		 */
+		pr_warn("pci%04x:%02x %pR conflicts with pci%04x:%02x %pR\n",
+				new->domain, (int)res_new->start, res_new,
+				old->domain, (int)res_old->start, res_old);
+		if (res_new->start == res_old->start)
+			return -ENOSPC;
+
+		if (res_new->start < res_old->start) {
+			res_new->end = res_old->start - 1;
+			pr_warn("pci%04x:%02x busn resource update to %pR\n",
+					new->domain, (int)res_new->start, res_new);
+		} else {
+			for (i = res_new->start;
+					i < (res_old->end - res_new->start + 1); i++) {
+				if (pci_find_bus(new->domain, i))
+					return -ENOSPC;
+			}
+			res_old->end = res_new->start - 1;
+			pr_warn("pci%04x:%02x busn resource update to %pR\n",
+					old->domain, (int)res_old->start, res_old);
+		}
+	}
+
+	return 0;
+}
+
 struct pci_host_bridge *pci_create_host_bridge(
 		struct device *parent, int domain,
 		struct list_head *resources)
 {
 	int error, bus;
-	struct pci_host_bridge *host;
+	struct pci_host_bridge *host, *tmp;
 	struct resource_entry *window, *n, *busn_res;
 
 	busn_res = pci_busn_resource(resources);
@@ -48,6 +103,20 @@ struct pci_host_bridge *pci_create_host_bridge(
 
 	host->dev.parent = parent;
 	pci_host_assign_domain_nr(host, domain);
+
+	mutex_lock(&pci_host_mutex);
+	list_for_each_entry(tmp, &pci_host_bridge_list, list) {
+		if (tmp->domain == host->domain
+			  && pci_host_busn_res_check(host, tmp)) {
+			mutex_unlock(&pci_host_mutex);
+			pci_free_resource_list(&host->windows);
+			kfree(host);
+			return NULL;
+		}
+	}
+	list_add_tail(&host->list, &pci_host_bridge_list);
+	mutex_unlock(&pci_host_mutex);
+
 	host->dev.release = pci_release_host_bridge_dev;
 	dev_set_name(&host->dev, "pci%04x:%02x",
 			host->domain, bus);
@@ -63,6 +132,10 @@ struct pci_host_bridge *pci_create_host_bridge(
 
 void pci_free_host_bridge(struct pci_host_bridge *host)
 {
+	mutex_lock(&pci_host_mutex);
+	list_del(&host->list);
+	mutex_unlock(&pci_host_mutex);
+
 	device_unregister(&host->dev);
 }
 
