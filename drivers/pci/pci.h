@@ -321,19 +321,6 @@ static inline int pci_dev_specific_reset(struct pci_dev *dev, int probe)
 }
 #endif
 
-#ifdef CONFIG_PCI_DOMAINS_GENERIC
-void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent);
-void pci_host_assign_domain_nr(struct pci_host_bridge *host);
-#else
-static inline void pci_bus_assign_domain_nr(struct pci_bus *bus,
-					struct device *parent)
-{
-}
-static inline void pci_host_assign_domain_nr(struct pci_host_bridge *host)
-{
-}
-#endif
-
 struct pci_host_bridge *pci_create_host_bridge(
 		struct device *parent, int domain, int bus, void *sysdata,
 		struct list_head *resources, struct pci_host_bridge_ops *ops);
