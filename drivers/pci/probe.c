@@ -1858,7 +1858,7 @@ void __weak pcibios_remove_bus(struct pci_bus *bus)
 {
 }
 
-static struct pci_bus *__pci_create_root_bus(
+static struct pci_bus *pci_create_root_bus(
 		struct pci_host_bridge *bridge, struct pci_ops *ops)
 {
 	int error, bus;
@@ -1947,34 +1947,6 @@ put_bridge:
 }
 EXPORT_SYMBOL_GPL(pci_create_root_bus);
 
-struct pci_bus *pci_create_root_bus(struct device *parent,
-		int domain, struct pci_ops *ops, void *sysdata,
-		struct list_head *resources)
-{
-	struct resource_entry *busn_res;
-	struct pci_host_bridge *host;
-
-	busn_res = pci_busn_resource(resources);
-	if (!busn_res) {
-		pr_err("No busn resource found\n");
-		return NULL;
-	}
-
-	host = pci_create_host_bridge(parent, domain, sysdata,
-			resources, NULL);
-	if (!host)
-		return NULL;
-
-	host->bus = __pci_create_root_bus(host, ops);
-	if (!host->bus) {
-		pci_free_host_bridge(host);
-		return NULL;
-	}
-
-	return host->bus;
-}
-
-
 int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
 {
 	struct resource *res = &b->busn_res;
@@ -2060,7 +2032,7 @@ struct pci_host_bridge *pci_scan_host_bridge(
 	if (!host)
 		return NULL;
 
-	host->bus = __pci_create_root_bus(host, ops->pci_ops);
+	host->bus = pci_create_root_bus(host, ops->pci_ops);
 	if (!host->bus) {
 		pci_free_host_bridge(host);
 		return NULL;
@@ -2104,7 +2076,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 	if (busn_resource)
 		host->dynamic_busn = true;
 
-	host->bus = __pci_create_root_bus(host, ops);
+	host->bus = pci_create_root_bus(host, ops);
 	if (!host->bus) {
 		pci_free_host_bridge(host);
 		return NULL;
@@ -2123,7 +2095,6 @@ struct pci_bus *pci_scan_bus(int domain, int bus,
 		struct pci_ops *ops, void *sysdata)
 {
 	LIST_HEAD(resources);
-	struct pci_bus *b;
 	struct resource *busn_resource;
 	struct pci_host_bridge *host;
 
@@ -2137,17 +2108,23 @@ struct pci_bus *pci_scan_bus(int domain, int bus,
 	pci_add_resource(&resources, &ioport_resource);
 	pci_add_resource(&resources, &iomem_resource);
 	pci_add_resource(&resources, busn_resource);
-	b = pci_create_root_bus(NULL, domain, ops, sysdata,
-			&resources);
-	if (b) {
-		host = to_pci_host_bridge(b->bridge);
-		host->dynamic_busn = true;
-		pci_scan_child_bus(b);
-	} else {
+	host = pci_create_host_bridge(NULL, domain, sysdata,
+			&resources, NULL);
+	if (!host) {
 		kfree(busn_resource);
 		pci_free_resource_list(&resources);
+		return NULL;
 	}
-	return b;
+
+	host->dynamic_busn = true;
+	host->bus = pci_create_root_bus(host, ops);
+	if (!host->bus) {
+		pci_free_host_bridge(host);
+		return NULL;
+	}
+
+	pci_scan_child_bus(host->bus);
+	return host->bus;
 }
 EXPORT_SYMBOL(pci_scan_bus);
 
