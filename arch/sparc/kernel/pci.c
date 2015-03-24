@@ -886,23 +886,6 @@ int pcibus_to_node(struct pci_bus *pbus)
 EXPORT_SYMBOL(pcibus_to_node);
 #endif
 
-/* Return the domain number for this pci bus */
-
-int pci_domain_nr(struct pci_bus *pbus)
-{
-	struct pci_pbm_info *pbm = pbus->sysdata;
-	int ret;
-
-	if (!pbm) {
-		ret = -ENXIO;
-	} else {
-		ret = pbm->index;
-	}
-
-	return ret;
-}
-EXPORT_SYMBOL(pci_domain_nr);
-
 #ifdef CONFIG_PCI_MSI
 int arch_setup_msi_irq(struct pci_dev *pdev, struct msi_desc *desc)
 {

@@ -101,12 +101,6 @@ static struct zpci_dev *get_zdev_by_bus(struct pci_bus *bus)
 	return (bus && bus->sysdata) ? (struct zpci_dev *) bus->sysdata : NULL;
 }
 
-int pci_domain_nr(struct pci_bus *bus)
-{
-	return ((struct zpci_dev *) bus->sysdata)->domain;
-}
-EXPORT_SYMBOL_GPL(pci_domain_nr);
-
 int pci_proc_domain(struct pci_bus *bus)
 {
 	return pci_domain_nr(bus);

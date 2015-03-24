@@ -4498,6 +4498,14 @@ static void pci_no_domains(void)
 }
 
 #ifdef CONFIG_PCI_DOMAINS
+int pci_domain_nr(struct pci_bus *bus)
+{
+	struct pci_host_bridge *host = pci_find_host_bridge(bus);
+
+	return host->domain;
+}
+EXPORT_SYMBOL(pci_domain_nr);
+
 #ifdef CONFIG_PCI_DOMAINS_GENERIC
 static atomic_t __domain_nr = ATOMIC_INIT(-1);
 
