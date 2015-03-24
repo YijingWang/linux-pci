@@ -8,6 +8,58 @@
 
 #include "pci.h"
 
+static void pci_release_host_bridge_dev(struct device *dev)
+{
+	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
+
+	if (bridge->release_fn)
+		bridge->release_fn(bridge);
+
+	pci_free_resource_list(&bridge->windows);
+	kfree(bridge);
+}
+
+struct pci_host_bridge *pci_create_host_bridge(
+		struct device *parent, int domain, int bus,
+		struct list_head *resources)
+{
+	int error;
+	struct pci_host_bridge *host;
+	struct resource_entry *window, *n;
+
+	host = kzalloc(sizeof(*host), GFP_KERNEL);
+	if (!host)
+		return NULL;
+
+	host->dev.parent = parent;
+	INIT_LIST_HEAD(&host->windows);
+	resource_list_for_each_entry_safe(window, n, resources)
+		list_move_tail(&window->node, &host->windows);
+	/*
+	 * If support CONFIG_PCI_DOMAINS_GENERIC, use
+	 * pci_host_assign_domain_nr() to update domain
+	 * number.
+	 */
+	host->domain = domain;
+	pci_host_assign_domain_nr(host);
+	host->dev.release = pci_release_host_bridge_dev;
+	dev_set_name(&host->dev, "pci%04x:%02x",
+			host->domain, bus);
+
+	error = device_register(&host->dev);
+	if (error) {
+		put_device(&host->dev);
+		return NULL;
+	}
+
+	return host;
+}
+
+void pci_free_host_bridge(struct pci_host_bridge *host)
+{
+	device_unregister(&host->dev);
+}
+
 static struct pci_bus *find_pci_root_bus(struct pci_bus *bus)
 {
 	while (bus->parent)
