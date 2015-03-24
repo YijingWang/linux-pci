@@ -4558,11 +4558,6 @@ static int pci_assign_domain_nr(struct device *dev)
 
 	return domain;
 }
-
-void pci_bus_assign_domain_nr(struct pci_bus *bus, struct device *parent)
-{
-	bus->domain_nr = pci_assign_domain_nr(parent);
-}
 #endif
 #endif
 
