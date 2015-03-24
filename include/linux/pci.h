@@ -407,6 +407,7 @@ struct pci_host_bridge {
 	/* we use default bus resource if no bus resource provided */
 	struct resource busn_res;
 	struct list_head windows;	/* resource_entry */
+	struct list_head list;
 	void (*release_fn)(struct pci_host_bridge *);
 	void *release_data;
 };

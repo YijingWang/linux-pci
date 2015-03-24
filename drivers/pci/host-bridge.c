@@ -8,6 +8,9 @@
 
 #include "pci.h"
 
+static LIST_HEAD(pci_host_bridge_list);
+static DEFINE_MUTEX(pci_host_mutex);
+
 static void pci_release_host_bridge_dev(struct device *dev)
 {
 	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
@@ -41,12 +44,29 @@ static void pci_host_update_busn_res(
 	pci_add_resource(resources, &host->busn_res);
 }
 
+static bool pci_host_busn_res_overlap(
+		struct pci_host_bridge *new, struct pci_host_bridge *old)
+{
+	struct resource_entry *entry;
+	struct resource *res1 = NULL, *res2 = NULL;
+
+	resource_list_for_each_entry(entry, &old->windows)
+		if (entry->res->flags & IORESOURCE_BUS)
+			res1 = entry->res;
+
+	resource_list_for_each_entry(entry, &new->windows)
+		if (entry->res->flags & IORESOURCE_BUS)
+			res2 = entry->res;
+
+	return resource_overlaps(res1, res2);
+}
+
 struct pci_host_bridge *pci_create_host_bridge(
 		struct device *parent, int domain, int bus,
 		struct list_head *resources)
 {
 	int error;
-	struct pci_host_bridge *host;
+	struct pci_host_bridge *host, *tmp;
 	struct resource_entry *window, *n;
 
 	host = kzalloc(sizeof(*host), GFP_KERNEL);
@@ -65,6 +85,21 @@ struct pci_host_bridge *pci_create_host_bridge(
 	 */
 	host->domain = domain;
 	pci_host_assign_domain_nr(host);
+	mutex_lock(&pci_host_mutex);
+	list_for_each_entry(tmp, &pci_host_bridge_list, list) {
+		if (tmp->domain != host->domain
+			  || pci_host_busn_res_overlap(host, tmp)) {
+			pr_warn("pci host bridge pci%04x:%02x exist\n",
+					host->domain, bus);
+			mutex_unlock(&pci_host_mutex);
+			pci_free_resource_list(&host->windows);
+			kfree(host);
+			return NULL;
+		}
+	}
+	list_add_tail(&host->list, &pci_host_bridge_list);
+	mutex_unlock(&pci_host_mutex);
+
 	host->dev.release = pci_release_host_bridge_dev;
 	dev_set_name(&host->dev, "pci%04x:%02x",
 			host->domain, bus);
@@ -80,6 +115,10 @@ struct pci_host_bridge *pci_create_host_bridge(
 
 void pci_free_host_bridge(struct pci_host_bridge *host)
 {
+	mutex_lock(&pci_host_mutex);
+	list_del(&host->list);
+	mutex_unlock(&pci_host_mutex);
+
 	device_unregister(&host->dev);
 }
 
