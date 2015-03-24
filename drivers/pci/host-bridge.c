@@ -81,7 +81,7 @@ static int pci_host_busn_res_check(
 }
 
 struct pci_host_bridge *pci_create_host_bridge(
-		struct device *parent, int domain,
+		struct device *parent, int domain, void *sysdata,
 		struct list_head *resources)
 {
 	int error, bus;
@@ -118,6 +118,7 @@ struct pci_host_bridge *pci_create_host_bridge(
 	mutex_unlock(&pci_host_mutex);
 
 	host->dev.release = pci_release_host_bridge_dev;
+	dev_set_drvdata(&host->dev, sysdata);
 	dev_set_name(&host->dev, "pci%04x:%02x",
 			host->domain, bus);
 

@@ -1871,8 +1871,7 @@ void __weak pcibios_remove_bus(struct pci_bus *bus)
 }
 
 static struct pci_bus *__pci_create_root_bus(
-		struct pci_host_bridge *bridge, struct pci_ops *ops,
-		void *sysdata)
+		struct pci_host_bridge *bridge, struct pci_ops *ops)
 {
 	int error, bus;
 	struct pci_bus *b;
@@ -1892,7 +1891,7 @@ static struct pci_bus *__pci_create_root_bus(
 	if (!b)
 		return NULL;
 
-	b->sysdata = sysdata;
+	b->sysdata = dev_get_drvdata(&bridge->dev);
 	b->ops = ops;
 	b->number = b->busn_res.start = bus;
 	pci_bus_assign_domain_nr(b, parent);
@@ -1973,11 +1972,11 @@ struct pci_bus *pci_create_root_bus(struct device *parent,
 		return NULL;
 	}
 
-	host = pci_create_host_bridge(parent, domain, resources);
+	host = pci_create_host_bridge(parent, domain, sysdata, resources);
 	if (!host)
 		return NULL;
 
-	host->bus = __pci_create_root_bus(host, ops, sysdata);
+	host->bus = __pci_create_root_bus(host, ops);
 	if (!host->bus) {
 		pci_free_host_bridge(host);
 		return NULL;
@@ -2083,7 +2082,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 			bus);
 	}
 
-	host = pci_create_host_bridge(parent, domain, resources);
+	host = pci_create_host_bridge(parent, domain, sysdata, resources);
 	if (!host) {
 		kfree(busn_resource);
 		return NULL;
@@ -2092,7 +2091,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 	if (busn_resource)
 		host->dynamic_busn = true;
 
-	host->bus = __pci_create_root_bus(host, ops, sysdata);
+	host->bus = __pci_create_root_bus(host, ops);
 	if (!host->bus) {
 		pci_free_host_bridge(host);
 		return NULL;
