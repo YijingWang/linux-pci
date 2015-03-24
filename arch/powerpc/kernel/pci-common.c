@@ -781,10 +781,10 @@ int pci_proc_domain(struct pci_bus *bus)
 	return 1;
 }
 
-int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
+int pcibios_root_bus_prepare(struct pci_host_bridge *bridge)
 {
-	if (ppc_md.pcibios_root_bridge_prepare)
-		return ppc_md.pcibios_root_bridge_prepare(bridge);
+	if (ppc_md.pcibios_root_bus_prepare)
+		return ppc_md.pcibios_root_bus_prepare(bridge);
 
 	return 0;
 }

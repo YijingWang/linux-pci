@@ -1883,6 +1883,11 @@ int __weak pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
 	return 0;
 }
 
+int __weak pcibios_root_bus_prepare(struct pci_host_bridge *bridge)
+{
+	return 0;
+}
+
 void __weak pcibios_add_bus(struct pci_bus *bus)
 {
 }
@@ -1948,6 +1953,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int domain,
 	b->dev.class = &pcibus_class;
 	b->dev.parent = b->bridge;
 	dev_set_name(&b->dev, "%04x:%02x", pci_domain_nr(b), bus);
+	error = pcibios_root_bus_prepare(bridge);
+	if (error)
+		goto class_dev_reg_err;
+
 	error = device_register(&b->dev);
 	if (error)
 		goto class_dev_reg_err;
