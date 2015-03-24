@@ -127,10 +127,6 @@ struct pci_host_bridge *pci_create_host_bridge(
 			goto list_del;
 	}
 
-	error = pcibios_root_bridge_prepare(host);
-	if (error)
-		goto list_del;
-
 	error = device_register(&host->dev);
 	if (error) {
 		put_device(&host->dev);
