@@ -496,7 +496,7 @@ static void __init pSeries_setup_arch(void)
 		ppc_md.enable_pmcs = power4_enable_pmcs;
 	}
 
-	ppc_md.pcibios_root_bridge_prepare = pseries_root_bridge_prepare;
+	ppc_md.pcibios_set_root_bus_speed = pseries_set_root_bus_speed;
 
 	if (firmware_has_feature(FW_FEATURE_SET_MODE)) {
 		long rc;
