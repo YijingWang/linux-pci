@@ -26,8 +26,11 @@ static void pci_host_update_busn_res(
 	struct resource_entry *window;
 
 	resource_list_for_each_entry(window, resources)
-		if (window->res->flags & IORESOURCE_BUS)
+		if (window->res->flags & IORESOURCE_BUS) {
+			if (bus > window->res->start)
+				window->res->start = bus;
 			return;
+		}
 
 	pr_info(
 	 "No busn resource found for pci%04x:%02x, will use [bus %02x-ff]\n",
