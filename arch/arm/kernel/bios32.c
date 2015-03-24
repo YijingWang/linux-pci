@@ -486,7 +486,7 @@ static void pcibios_init_hw(struct device *parent, struct hw_pci *hw,
 			if (hw->scan)
 				sys->bus = hw->scan(nr, sys);
 			else
-				sys->bus = pci_scan_root_bus(parent, sys->busnr,
+				sys->bus = pci_scan_root_bus(parent, -1, sys->busnr,
 						hw->ops, sys, &sys->resources);
 
 			if (!sys->bus)

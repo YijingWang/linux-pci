@@ -384,7 +384,8 @@ int __init pcibios_init(void)
 	printk("PCI: Probing PCI hardware\n");
 	pci_add_resource(&resources, &pci_ioport_resource);
 	pci_add_resource(&resources, &pci_iomem_resource);
-	bus = pci_scan_root_bus(NULL, 0, pci_root_ops, NULL, &resources);
+	bus = pci_scan_root_bus(NULL, 0, 0, pci_root_ops, NULL,
+			&resources);
 
 	pcibios_irq_init();
 	pcibios_fixup_irqs();

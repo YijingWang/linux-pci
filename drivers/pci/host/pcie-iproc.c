@@ -210,7 +210,7 @@ int iproc_pcie_setup(struct iproc_pcie *pcie)
 
 	pcie->sysdata.private_data = pcie;
 
-	bus = pci_create_root_bus(pcie->dev, 0, &iproc_pcie_ops,
+	bus = pci_create_root_bus(pcie->dev, -1, 0, &iproc_pcie_ops,
 				  &pcie->sysdata, pcie->resources);
 	if (!bus) {
 		dev_err(pcie->dev, "unable to create PCI root bus\n");

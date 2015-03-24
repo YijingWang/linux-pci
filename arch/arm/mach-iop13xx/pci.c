@@ -535,12 +535,12 @@ struct pci_bus *iop13xx_scan_bus(int nr, struct pci_sys_data *sys)
 			while(time_before(jiffies, atux_trhfa_timeout))
 				udelay(100);
 
-		bus = pci_bus_atux = pci_scan_root_bus(NULL, sys->busnr,
+		bus = pci_bus_atux = pci_scan_root_bus(NULL, -1, sys->busnr,
 						       &iop13xx_atux_ops,
 						       sys, &sys->resources);
 		break;
 	case IOP13XX_INIT_ATU_ATUE:
-		bus = pci_bus_atue = pci_scan_root_bus(NULL, sys->busnr,
+		bus = pci_bus_atue = pci_scan_root_bus(NULL, -1, sys->busnr,
 						       &iop13xx_atue_ops,
 						       sys, &sys->resources);
 		break;

@@ -779,8 +779,8 @@ static int zpci_scan_bus(struct zpci_dev *zdev)
 	if (ret)
 		return ret;
 
-	zdev->bus = pci_scan_root_bus(NULL, ZPCI_BUS_NR, &pci_root_ops,
-				      zdev, &resources);
+	zdev->bus = pci_scan_root_bus(NULL, zdev->domain, ZPCI_BUS_NR,
+			&pci_root_ops, zdev, &resources);
 	if (!zdev->bus) {
 		zpci_cleanup_bus_resources(zdev);
 		return -EIO;

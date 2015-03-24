@@ -462,8 +462,8 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 	 * should handle the case here, but it appears that IA64 hasn't
 	 * such quirk. So we just ignore the case now.
 	 */
-	pbus = pci_create_root_bus(NULL, bus, &pci_root_ops, controller,
-				   &info->resources);
+	pbus = pci_create_root_bus(NULL, domain, bus, &pci_root_ops,
+			controller, &info->resources);
 	if (!pbus) {
 		pci_free_resource_list(&info->resources);
 		__release_pci_root_info(info);
