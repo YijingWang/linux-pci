@@ -331,6 +331,9 @@ static inline void pci_bus_assign_domain_nr(struct pci_bus *bus,
 {
 }
 #endif
-
+struct resource_entry *pci_busn_resource(struct list_head *resources);
 void pci_host_assign_domain_nr(struct pci_host_bridge *host, int domain);
+struct pci_host_bridge *pci_create_host_bridge(struct device *parent,
+		int domain, struct list_head *resources);
+void pci_free_host_bridge(struct pci_host_bridge *host);
 #endif /* DRIVERS_PCI_H */
