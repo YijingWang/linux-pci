@@ -63,7 +63,8 @@ static bool pci_host_busn_res_overlap(
 
 struct pci_host_bridge *pci_create_host_bridge(
 		struct device *parent, int domain, int bus,
-		void *sysdata, struct list_head *resources)
+		void *sysdata, struct list_head *resources,
+		struct pci_host_bridge_ops *ops)
 {
 	int error;
 	struct pci_host_bridge *host, *tmp;
@@ -98,10 +99,16 @@ struct pci_host_bridge *pci_create_host_bridge(
 	list_add_tail(&host->list, &pci_host_bridge_list);
 	mutex_unlock(&pci_host_mutex);
 
+	host->ops = ops;
 	host->dev.release = pci_release_host_bridge_dev;
 	dev_set_drvdata(&host->dev, sysdata);
 	dev_set_name(&host->dev, "pci%04x:%02x",
 			host->domain, bus);
+	if (host->ops && host->ops->prepare) {
+		error = host->ops->prepare(host);
+		if (error)
+			goto list_del;
+	}
 
 	error = pcibios_root_bridge_prepare(host);
 	if (error)

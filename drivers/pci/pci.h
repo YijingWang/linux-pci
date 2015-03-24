@@ -334,8 +334,9 @@ static inline void pci_host_assign_domain_nr(struct pci_host_bridge *host)
 }
 #endif
 
-struct pci_host_bridge *pci_create_host_bridge(struct device *parent,
-        int domain, int bus, void *sysdata, struct list_head *resources);
+struct pci_host_bridge *pci_create_host_bridge(
+		struct device *parent, int domain, int bus, void *sysdata,
+		struct list_head *resources, struct pci_host_bridge_ops *ops);
 void pci_free_host_bridge(struct pci_host_bridge *host);
 
 static inline int pci_host_first_busnr(struct pci_host_bridge *host)

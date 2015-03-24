@@ -1894,6 +1894,8 @@ static struct pci_bus *__pci_create_root_bus(
 	bridge->bus = b;
 	b->bridge = get_device(&bridge->dev);
 
+	if (bridge->ops && bridge->ops->set_root_bus_speed)
+		bridge->ops->set_root_bus_speed(bridge);
 	pcibios_set_root_bus_speed(bridge);
 	device_enable_async_suspend(b->bridge);
 	pci_set_bus_of_node(b);
@@ -1958,7 +1960,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent,
 	struct pci_host_bridge *host;
 
 	host = pci_create_host_bridge(parent, domain, bus,
-			sysdata, resources);
+			sysdata, resources, NULL);
 	if (!host)
 		return NULL;
 
@@ -2048,7 +2050,10 @@ static struct pci_bus *__pci_scan_root_bus(
 	if (!b)
 		return NULL;
 
-	max = pci_scan_child_bus(b);
+	if (host->ops && host->ops->scan_bus)
+		max = host->ops->scan_bus(host);
+	else
+		max = pci_scan_child_bus(b);
 
 	/* If default busn resource used, update the max bus number */
 	if (host->busn_res.flags & IORESOURCE_BUS) {
@@ -2066,7 +2071,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 	struct pci_host_bridge *host;
 
 	host = pci_create_host_bridge(parent, domain, bus,
-			sysdata, resources);
+			sysdata, resources, NULL);
 	if (!host)
 		return NULL;
 
