@@ -1893,9 +1893,6 @@ static struct pci_bus *__pci_create_root_bus(
 
 	bridge->bus = b;
 	b->bridge = get_device(&bridge->dev);
-	error = pcibios_root_bridge_prepare(bridge);
-	if (error)
-		goto put_dev;
 
 	pcibios_set_root_bus_speed(bridge);
 	device_enable_async_suspend(b->bridge);
