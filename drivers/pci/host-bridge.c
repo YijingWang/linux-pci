@@ -19,6 +19,25 @@ static void pci_release_host_bridge_dev(struct device *dev)
 	kfree(bridge);
 }
 
+static void pci_host_update_busn_res(
+		struct pci_host_bridge *host, int bus,
+		struct list_head *resources)
+{
+	struct resource_entry *window;
+
+	resource_list_for_each_entry(window, resources)
+		if (window->res->flags & IORESOURCE_BUS)
+			return;
+
+	pr_info(
+	 "No busn resource found for pci%04x:%02x, will use [bus %02x-ff]\n",
+		host->domain, bus, bus);
+	host->busn_res.flags = IORESOURCE_BUS;
+	host->busn_res.start = bus;
+	host->busn_res.end = 255;
+	pci_add_resource(resources, &host->busn_res);
+}
+
 struct pci_host_bridge *pci_create_host_bridge(
 		struct device *parent, int domain, int bus,
 		struct list_head *resources)
@@ -33,6 +52,7 @@ struct pci_host_bridge *pci_create_host_bridge(
 
 	host->dev.parent = parent;
 	INIT_LIST_HEAD(&host->windows);
+	pci_host_update_busn_res(host, bus, resources);
 	resource_list_for_each_entry_safe(window, n, resources)
 		list_move_tail(&window->node, &host->windows);
 	/*

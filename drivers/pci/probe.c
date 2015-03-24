@@ -2022,6 +2022,12 @@ int pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
 	return ret;
 }
 
+static void pci_host_update_busn_res_end(
+		struct pci_host_bridge *host, int max)
+{
+	host->busn_res.end = max;
+}
+
 void pci_bus_release_busn_res(struct pci_bus *b)
 {
 	struct resource *res = &b->busn_res;
@@ -2040,32 +2046,20 @@ static struct pci_bus *__pci_scan_root_bus(int bus,
 		struct pci_host_bridge *host, struct pci_ops *ops,
 		void *sysdata)
 {
-	struct resource_entry *window;
-	bool found = false;
 	struct pci_bus *b;
 	int max;
-
-	resource_list_for_each_entry(window, &host->windows)
-		if (window->res->flags & IORESOURCE_BUS) {
-			found = true;
-			break;
-		}
 
 	b = __pci_create_root_bus(bus, host, ops, sysdata);
 	if (!b)
 		return NULL;
 
-	if (!found) {
-		dev_info(&b->dev,
-		 "No busn resource found for root bus, will use [bus %02x-ff]\n",
-			bus);
-		pci_bus_insert_busn_res(b, bus, 255);
-	}
-
 	max = pci_scan_child_bus(b);
 
-	if (!found)
+	/* If default busn resource used, update the max bus number */
+	if (host->busn_res.flags & IORESOURCE_BUS) {
+		pci_host_update_busn_res_end(host, max);
 		pci_bus_update_busn_res_end(b, max);
+	}
 
 	return b;
 }
