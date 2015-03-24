@@ -182,6 +182,16 @@ void  pci_put_host_bridge_device(struct device *dev)
 	kobject_put(&dev->kobj);
 }
 
+#ifdef CONFIG_PCI_DOMAINS
+int pci_domain_nr(struct pci_bus *bus)
+{
+	struct pci_host_bridge *host = pci_find_host_bridge(bus);
+
+	return host->domain;
+}
+EXPORT_SYMBOL(pci_domain_nr);
+#endif
+
 void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
 				 void (*release_fn)(struct pci_host_bridge *),
 				 void *release_data)
