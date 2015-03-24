@@ -2064,6 +2064,29 @@ void pci_bus_release_busn_res(struct pci_bus *b)
 			res, ret ? "can not be" : "is");
 }
 
+struct pci_host_bridge *pci_scan_host_bridge(
+		struct device *parent, int domain,
+		void *sysdata, struct list_head *resources,
+		struct pci_host_bridge_ops *ops)
+{
+	struct pci_host_bridge *host;
+
+	host = pci_create_host_bridge(parent, domain, sysdata,
+			resources, ops);
+	if (!host)
+		return NULL;
+
+	host->bus = __pci_create_root_bus(host, ops->pci_ops);
+	if (!host->bus) {
+		pci_free_host_bridge(host);
+		return NULL;
+	}
+
+	pci_scan_child_bus(host->bus);
+	return host;
+}
+EXPORT_SYMBOL(pci_scan_host_bridge);
+
 struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 		int bus, struct pci_ops *ops, void *sysdata,
 		struct list_head *resources)
