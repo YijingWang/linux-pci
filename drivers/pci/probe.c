@@ -1864,7 +1864,7 @@ void __weak pcibios_remove_bus(struct pci_bus *bus)
 {
 }
 
-static struct pci_bus *__pci_create_root_bus(int bus,
+static struct pci_bus *__pci_create_root_bus(
 		struct pci_host_bridge *bridge, struct pci_ops *ops,
 		void *sysdata)
 {
@@ -1884,9 +1884,10 @@ static struct pci_bus *__pci_create_root_bus(int bus,
 
 	b->sysdata = sysdata;
 	b->ops = ops;
-	b->number = b->busn_res.start = bus;
+	b->number = b->busn_res.start =
+		pci_host_first_busnr(bridge);
 	pci_bus_assign_domain_nr(b, parent);
-	b2 = pci_find_bus(pci_domain_nr(b), bus);
+	b2 = pci_find_bus(pci_domain_nr(b), b->number);
 	if (b2) {
 		/* If we already got to this bus through a different bridge, ignore it */
 		dev_dbg(&b2->dev, "bus already known\n");
@@ -1907,7 +1908,7 @@ static struct pci_bus *__pci_create_root_bus(int bus,
 
 	b->dev.class = &pcibus_class;
 	b->dev.parent = b->bridge;
-	dev_set_name(&b->dev, "%04x:%02x", bridge->domain, bus);
+	dev_set_name(&b->dev, "%04x:%02x", bridge->domain, b->number);
 	error = device_register(&b->dev);
 	if (error)
 		goto put_dev;
@@ -1927,7 +1928,7 @@ static struct pci_bus *__pci_create_root_bus(int bus,
 		res = window->res;
 		offset = window->offset;
 		if (res->flags & IORESOURCE_BUS)
-			pci_bus_insert_busn_res(b, bus, res->end);
+			pci_bus_insert_busn_res(b, b->number, res->end);
 		else
 			pci_bus_add_resource(b, res, 0);
 		if (offset) {
@@ -1966,7 +1967,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent,
 	if (!host)
 		return NULL;
 
-	host->bus = __pci_create_root_bus(bus, host, ops, sysdata);
+	host->bus = __pci_create_root_bus(host, ops, sysdata);
 	if (!host->bus)
 		pci_free_host_bridge(host);
 
@@ -2042,14 +2043,14 @@ void pci_bus_release_busn_res(struct pci_bus *b)
 			res, ret ? "can not be" : "is");
 }
 
-static struct pci_bus *__pci_scan_root_bus(int bus,
+static struct pci_bus *__pci_scan_root_bus(
 		struct pci_host_bridge *host, struct pci_ops *ops,
 		void *sysdata)
 {
 	struct pci_bus *b;
 	int max;
 
-	b = __pci_create_root_bus(bus, host, ops, sysdata);
+	b = __pci_create_root_bus(host, ops, sysdata);
 	if (!b)
 		return NULL;
 
@@ -2074,7 +2075,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 	if (!host)
 		return NULL;
 
-	host->bus = __pci_scan_root_bus(bus, host, ops, sysdata);
+	host->bus = __pci_scan_root_bus(host, ops, sysdata);
 	if (!host->bus)
 		pci_free_host_bridge(host);
 
