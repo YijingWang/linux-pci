@@ -202,7 +202,7 @@ mv78xx0_pcie_scan_bus(int nr, struct pci_sys_data *sys)
 		return NULL;
 	}
 
-	return pci_scan_root_bus(NULL, sys->busnr, &pcie_ops, sys,
+	return pci_scan_root_bus(NULL, -1, sys->busnr, &pcie_ops, sys,
 				 &sys->resources);
 }
 

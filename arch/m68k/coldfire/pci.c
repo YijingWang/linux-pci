@@ -312,7 +312,7 @@ static int __init mcf_pci_init(void)
 	set_current_state(TASK_UNINTERRUPTIBLE);
 	schedule_timeout(msecs_to_jiffies(200));
 
-	rootbus = pci_scan_bus(0, &mcf_pci_ops, NULL);
+	rootbus = pci_scan_bus(0, 0, &mcf_pci_ops, NULL);
 	if (!rootbus)
 		return -ENODEV;
 

@@ -390,7 +390,7 @@ static void __init pcic_pbm_scan_bus(struct linux_pcic *pcic)
 {
 	struct linux_pbm_info *pbm = &pcic->pbm;
 
-	pbm->pci_bus = pci_scan_bus(pbm->pci_first_busno, &pcic_ops, pbm);
+	pbm->pci_bus = pci_scan_bus(0, pbm->pci_first_busno, &pcic_ops, pbm);
 	if (!pbm->pci_bus)
 		return;
 

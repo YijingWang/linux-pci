@@ -183,7 +183,7 @@ static int __init pcibios_init(void)
 		pci_ctrl->last_busno = 0xff;
 		INIT_LIST_HEAD(&resources);
 		pci_controller_apertures(pci_ctrl, &resources);
-		bus = pci_scan_root_bus(NULL, pci_ctrl->first_busno,
+		bus = pci_scan_root_bus(NULL, 0, pci_ctrl->first_busno,
 					pci_ctrl->ops, pci_ctrl, &resources);
 		if (!bus)
 			continue;
