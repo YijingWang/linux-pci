@@ -4,6 +4,8 @@
 
 #include <linux/kernel.h>
 #include <linux/pci.h>
+#include <linux/of_pci.h>
+#include <linux/of.h>
 #include <linux/module.h>
 
 #include "pci.h"
@@ -82,12 +84,13 @@ struct pci_host_bridge *pci_create_host_bridge(
 	resource_list_for_each_entry_safe(window, n, resources)
 		list_move_tail(&window->node, &host->windows);
 	/*
-	 * If support CONFIG_PCI_DOMAINS_GENERIC, use
+	 * If domain == -1, we need to use
 	 * pci_host_assign_domain_nr() to update domain
 	 * number.
 	 */
 	host->domain = domain;
-	pci_host_assign_domain_nr(host);
+	if (host->domain == -1)
+		pci_host_assign_domain_nr(host);
 	mutex_lock(&pci_host_mutex);
 	list_for_each_entry(tmp, &pci_host_bridge_list, list) {
 		if (tmp->domain != host->domain
@@ -169,7 +172,6 @@ int pci_get_new_domain_nr(void)
 	return atomic_inc_return(&__domain_nr);
 }
 
-#ifdef CONFIG_PCI_DOMAINS_GENERIC
 static int pci_assign_domain_nr(struct device *dev)
 {
 	static int use_dt_domains = -1;
@@ -215,11 +217,10 @@ static int pci_assign_domain_nr(struct device *dev)
 	return domain;
 }
 #endif
-#endif
 
 void pci_host_assign_domain_nr(struct pci_host_bridge *host)
 {
-#ifdef CONFIG_PCI_DOMAINS_GENERIC
+#ifdef CONFIG_PCI_DOMAINS
 	host->domain = pci_assign_domain_nr(host->dev.parent);
 #endif
 }
