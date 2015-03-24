@@ -400,6 +400,14 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
 	return (pdev->error_state != pci_channel_io_normal);
 }
 
+struct pci_host_bridge;
+struct pci_host_bridge_ops {
+	struct pci_ops *pci_ops;
+	int (*prepare)(struct pci_host_bridge *host);
+	void (*set_root_bus_speed)(struct pci_host_bridge *host);
+	int (*scan_bus)(struct pci_host_bridge *host);
+};
+
 struct pci_host_bridge {
 	int domain;
 	struct device dev;
@@ -408,6 +416,7 @@ struct pci_host_bridge {
 	struct resource busn_res;
 	struct list_head windows;	/* resource_entry */
 	struct list_head list;
+	struct pci_host_bridge_ops *ops;
 	void (*release_fn)(struct pci_host_bridge *);
 	void *release_data;
 };
