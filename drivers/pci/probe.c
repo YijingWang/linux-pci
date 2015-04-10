@@ -59,6 +59,17 @@ static struct resource *get_pci_domain_busn_res(int domain_nr)
 	return &r->res;
 }
 
+static struct resource_entry *pci_busn_resource(
+		struct list_head *resources)
+{
+	struct resource_entry *entry;
+
+	resource_list_for_each_entry(entry, resources)
+		if (entry->res->flags & IORESOURCE_BUS)
+			return entry;
+	return NULL;
+}
+
 static int find_anything(struct device *dev, void *data)
 {
 	return 1;
@@ -1892,18 +1903,21 @@ void __weak pcibios_remove_bus(struct pci_bus *bus)
 }
 
 struct pci_bus *pci_create_root_bus(struct device *parent, int domain,
-		int bus, struct pci_ops *ops, void *sysdata,
-		struct list_head *resources)
+		struct pci_ops *ops, void *sysdata, struct list_head *resources)
 {
-	int error;
+	int error, bus;
 	struct pci_host_bridge *bridge;
 	struct pci_bus *b, *b2;
-	struct resource_entry *window, *n;
+	struct resource_entry *window, *n, *busn_res;
 	struct resource *res;
 	resource_size_t offset;
 	char bus_addr[64];
 	char *fmt;
 
+	busn_res = pci_busn_resource(resources);
+	if (!busn_res)
+		return NULL;
+	bus = busn_res->res->start;
 	b = pci_alloc_bus(NULL);
 	if (!b)
 		return NULL;
@@ -2077,7 +2091,7 @@ struct pci_bus *pci_scan_root_bus(struct device *parent, int domain,
 			break;
 		}
 
-	b = pci_create_root_bus(parent, domain, bus, ops,
+	b = pci_create_root_bus(parent, domain, ops,
 			sysdata, resources);
 	if (!b)
 		return NULL;
@@ -2107,7 +2121,7 @@ struct pci_bus *pci_scan_bus(int domain, int bus,
 	pci_add_resource(&resources, &ioport_resource);
 	pci_add_resource(&resources, &iomem_resource);
 	pci_add_resource(&resources, &busn_resource);
-	b = pci_create_root_bus(NULL, domain, bus, ops, sysdata,
+	b = pci_create_root_bus(NULL, domain, ops, sysdata,
 			&resources);
 	if (b) {
 		pci_scan_child_bus(b);

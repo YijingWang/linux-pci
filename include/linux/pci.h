@@ -776,7 +776,7 @@ struct pci_bus *pci_find_bus(int domain, int busnr);
 void pci_bus_add_devices(const struct pci_bus *bus);
 struct pci_bus *pci_scan_bus(int domain, int bus, struct pci_ops *ops,
 					void *sysdata);
-struct pci_bus *pci_create_root_bus(struct device *parent, int domain, int bus,
+struct pci_bus *pci_create_root_bus(struct device *parent, int domain,
 				    struct pci_ops *ops, void *sysdata,
 				    struct list_head *resources);
 int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);

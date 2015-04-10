@@ -1613,7 +1613,7 @@ void pcibios_scan_phb(struct pci_controller *hose)
 
 	/* Create an empty bus for the toplevel */
 	bus = pci_create_root_bus(hose->parent, hose->global_number,
-			hose->first_busno, hose->ops, hose, &resources);
+			hose->ops, hose, &resources);
 	if (bus == NULL) {
 		pr_err("Failed to create bus for PCI domain %04x\n",
 			hose->global_number);
