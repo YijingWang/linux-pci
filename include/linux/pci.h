@@ -402,6 +402,7 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
 
 struct pci_host_bridge {
 	int domain;
+	bool dynamic_busn;
 	struct device dev;
 	struct pci_bus *bus;		/* root bus */
 	struct list_head windows;	/* resource_entry */

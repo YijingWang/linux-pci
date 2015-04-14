@@ -18,13 +18,6 @@
 #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
 #define CARDBUS_RESERVE_BUSNR	3
 
-static struct resource busn_resource = {
-	.name	= "PCI busn",
-	.start	= 0,
-	.end	= 255,
-	.flags	= IORESOURCE_BUS,
-};
-
 /* Ugh.  Need to stop exporting this to modules. */
 LIST_HEAD(pci_root_buses);
 EXPORT_SYMBOL(pci_root_buses);
@@ -516,10 +509,16 @@ static struct pci_bus *pci_alloc_bus(struct pci_bus *parent)
 
 static void pci_release_host_bridge_dev(struct device *dev)
 {
+	struct resource_entry *entry;
 	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
 
 	if (bridge->release_fn)
 		bridge->release_fn(bridge);
+
+	if (bridge->dynamic_busn) {
+		entry = pci_busn_resource(&bridge->windows);
+		kfree(entry->res);
+	}
 
 	pci_free_resource_list(&bridge->windows);
 
@@ -2117,15 +2116,27 @@ struct pci_bus *pci_scan_bus(int domain, int bus,
 {
 	LIST_HEAD(resources);
 	struct pci_bus *b;
+	struct resource *busn_resource;
+	struct pci_host_bridge *host;
 
+	busn_resource = kzalloc(sizeof(struct resource), GFP_KERNEL);
+	if (!busn_resource)
+		return NULL;
+
+	busn_resource->start = bus;
+	busn_resource->end = 255;
+	busn_resource->flags = IORESOURCE_BUS;
 	pci_add_resource(&resources, &ioport_resource);
 	pci_add_resource(&resources, &iomem_resource);
-	pci_add_resource(&resources, &busn_resource);
+	pci_add_resource(&resources, busn_resource);
 	b = pci_create_root_bus(NULL, domain, ops, sysdata,
 			&resources);
 	if (b) {
+		host = to_pci_host_bridge(b->bridge);
+		host->dynamic_busn = true;
 		pci_scan_child_bus(b);
 	} else {
+		kfree(busn_resource);
 		pci_free_resource_list(&resources);
 	}
 	return b;
