@@ -478,7 +478,7 @@ struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)
 
 int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
 {
-	struct pci_controller *controller = bridge->bus->sysdata;
+	struct pci_controller *controller = dev_get_drvdata(&bridge->dev);
 
 	ACPI_COMPANION_SET(&bridge->dev, controller->companion);
 	return 0;
