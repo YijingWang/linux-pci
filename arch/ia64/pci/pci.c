@@ -485,7 +485,7 @@ int pcibios_root_bridge_prepare(struct pci_host_bridge *bridge)
 	 * that case.
 	 */
 	if (!bridge->dev.parent) {
-		struct pci_controller *controller = bridge->bus->sysdata;
+		struct pci_controller *controller = dev_get_drvdata(&bridge->dev);
 		ACPI_COMPANION_SET(&bridge->dev, controller->companion);
 	}
 	return 0;
