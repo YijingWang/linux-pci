@@ -881,8 +881,8 @@ int __init pcibios_init(void)
 					controller->mem_offset);
 		pci_add_resource(&resources, &controller->io_space);
 		controller->first_busno = next_busno;
-		bus = pci_scan_root_bus(NULL, next_busno, controller->ops,
-					controller, &resources);
+		bus = pci_scan_root_bus(NULL, controller->index, next_busno,
+				controller->ops, controller, &resources);
 		controller->root_bus = bus;
 		next_busno = bus->busn_res.end + 1;
 	}

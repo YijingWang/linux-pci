@@ -402,6 +402,7 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
 }
 
 struct pci_host_bridge {
+	int domain;
 	struct device dev;
 	struct pci_bus *bus;		/* root bus */
 	struct list_head windows;	/* resource_entry */
@@ -780,16 +781,29 @@ void pcibios_bus_to_resource(struct pci_bus *bus, struct resource *res,
 void pcibios_scan_specific_bus(int busn);
 struct pci_bus *pci_find_bus(int domain, int busnr);
 void pci_bus_add_devices(const struct pci_bus *bus);
-struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
-struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+struct pci_bus *pci_scan_bus(int domain, int bus, struct pci_ops *ops,
+					void *sysdata);
+struct pci_bus *pci_create_root_bus(struct device *parent, int domain, int bus,
 				    struct pci_ops *ops, void *sysdata,
 				    struct list_head *resources);
+static inline struct pci_bus *pci_create_root_bus_generic(
+		struct device *parent, int bus,	struct pci_ops *ops,
+		void *sysdata, struct list_head *resources)
+{
+	return pci_create_root_bus(parent, -1, bus, ops, sysdata, resources);
+}
 int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
 int pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
 void pci_bus_release_busn_res(struct pci_bus *b);
-struct pci_bus *pci_scan_root_bus(struct device *parent, int bus,
+struct pci_bus *pci_scan_root_bus(struct device *parent, int domain, int bus,
 					     struct pci_ops *ops, void *sysdata,
 					     struct list_head *resources);
+static inline struct pci_bus *pci_scan_root_bus_generic(
+		struct device *parent, int bus,	struct pci_ops *ops,
+		void *sysdata, struct list_head *resources)
+{
+	return pci_scan_root_bus(parent, -1, bus, ops, sysdata, resources);
+}
 struct pci_bus *pci_add_new_bus(struct pci_bus *parent, struct pci_dev *dev,
 				int busnr);
 void pcie_update_link_speed(struct pci_bus *bus, u16 link_status);

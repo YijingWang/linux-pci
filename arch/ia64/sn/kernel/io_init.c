@@ -266,8 +266,8 @@ sn_pci_controller_fixup(int segment, int busnum, struct pci_bus *bus)
 	pci_add_resource_offset(&resources,	&res[1],
 			prom_bussoft_ptr->bs_legacy_mem);
 
-	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, controller,
-				&resources);
+	bus = pci_scan_root_bus(NULL, controller->segment, busnum,
+			&pci_root_ops, controller, &resources);
  	if (bus == NULL) {
 		kfree(res);
 		kfree(controller);
