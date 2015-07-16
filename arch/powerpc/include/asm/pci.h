@@ -73,8 +73,6 @@ extern struct dma_map_ops *get_pci_dma_ops(void);
 
 #endif /* CONFIG_PPC64 */
 
-extern int pci_domain_nr(struct pci_bus *bus);
-
 /* Decide whether to display the domain number in /proc */
 extern int pci_proc_domain(struct pci_bus *bus);
 

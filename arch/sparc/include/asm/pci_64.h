@@ -33,7 +33,6 @@
 
 /* Return the index of the PCI controller for device PDEV. */
 
-int pci_domain_nr(struct pci_bus *bus);
 static inline int pci_proc_domain(struct pci_bus *bus)
 {
 	return 1;

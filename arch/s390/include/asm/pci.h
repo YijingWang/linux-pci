@@ -20,7 +20,6 @@
 
 void __iomem *pci_iomap(struct pci_dev *, int, unsigned long);
 void pci_iounmap(struct pci_dev *, void __iomem *);
-int pci_domain_nr(struct pci_bus *);
 int pci_proc_domain(struct pci_bus *);
 
 #define ZPCI_BUS_NR			0	/* default bus number */

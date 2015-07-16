@@ -42,8 +42,6 @@
  */
 #define pcibios_assign_all_busses()	0
 
-extern int pci_domain_nr(struct pci_bus *bus);
-
 /* Decide whether to display the domain number in /proc */
 extern int pci_proc_domain(struct pci_bus *bus);
 
